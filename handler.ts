@@ -1,13 +1,11 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-
-const {
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import {
     DynamoDBDocumentClient,
     GetCommand,
     PutCommand,
-} = require("@aws-sdk/lib-dynamodb");
-
-const express = require("express");
-const serverless = require("serverless-http");
+} from "@aws-sdk/lib-dynamodb";
+import express from "express";
+import serverless from "serverless-http";
 
 const app = express();
 
@@ -17,7 +15,7 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 app.use(express.json());
 
-app.get("/users/:userId", async (req, res) => {
+app.get("/users/:userId", async (req: any, res: any) => {
     const params = {
         TableName: USERS_TABLE,
         Key: {
@@ -42,7 +40,7 @@ app.get("/users/:userId", async (req, res) => {
     }
 });
 
-app.post("/users", async (req, res) => {
+app.post("/users", async (req: any, res: any) => {
     const { userId, name } = req.body;
     if (typeof userId !== "string") {
         res.status(400).json({ error: '"userId" must be a string' });
@@ -65,7 +63,7 @@ app.post("/users", async (req, res) => {
     }
 });
 
-app.use((req, res, next) => {
+app.use((_, res: any) => {
     return res.status(404).json({
         error: "Not Found",
     });

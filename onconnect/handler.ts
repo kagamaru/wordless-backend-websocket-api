@@ -1,6 +1,7 @@
 import { AttributeValue, ScanCommand } from "@aws-sdk/client-dynamodb";
 import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import dayjs from "dayjs";
+import "dayjs/locale/ja";
 import { Guid } from "guid-typescript";
 import { getDynamoDBClient } from "../helpers/getDynamoDBClient";
 import { onConnectResponse } from "../classes/onConnectResponse";

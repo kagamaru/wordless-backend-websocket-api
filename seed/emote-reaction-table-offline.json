@@ -1,0 +1,24 @@
+[
+    {
+        "emoteReactionId": "7c312fe0-1f2e-4b1f-87a1-09eeb3968d74",
+        "emoteReactionEmojis": [
+            {
+                "emojiId": ":snake:",
+                "numberOfReactions": 23
+            },
+            {
+                "emojiId": ":smile",
+                "numberOfReactions": 1
+            }
+        ]
+    },
+    {
+        "emoteReactionId": "f027ab3c-c422-4f98-8446-071f3d9eb78d",
+        "emoteReactionEmojis": [
+            {
+                "emojiId": ":party_parrot:",
+                "numberOfReactions": 100
+            }
+        ]
+    }
+]

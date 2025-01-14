@@ -5,14 +5,6 @@ app: wordless-backend-emote
 # "service" is the name of this project. This will also be added to your AWS resource names.
 service: wordless-backend-emote
 
-stages:
-  default:
-    params:
-      UserConnectionTableName: "user-connection-table-${sls:stage}"
-      EmoteTableName: "emote-table-${sls:stage}"
-      EmoteReactionTableName: "emote-reaction-table-${sls:stage}"
-      UserTableName: "user-table-${sls:stage}"
-
 provider:
   name: aws
   runtime: nodejs20.x
@@ -28,12 +20,15 @@ provider:
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
           Resource:
-            - Fn::GetAtt: [UsersTable, Arn]
+            - Fn::GetAtt: [UserConnectionTable, Arn]
+            - Fn::GetAtt: [EmoteTable, Arn]
+            - Fn::GetAtt: [EmoteReactionTable, Arn]
+            - Fn::GetAtt: [UserTable, Arn]
   environment:
-    USER_CONNECTION_TABLE: ${param:UserConnectionTableName}
-    EMOTE_TABLE: ${param:EmoteTableName}
-    EMOTE_REACTION_TABLE: ${params.EmoteReactionTableName}
-    USER_TABLE: ${param:UserTableName}
+    USER_CONNECTION_TABLE: "user-connection-table-${sls:stage}"
+    EMOTE_TABLE: "emote-table-${sls:stage}"
+    EMOTE_REACTION_TABLE: "emote-reaction-table-${sls:stage}"
+    USERS_TABLE: "users-table-${sls:stage}"
 
 functions:
   connect:
@@ -54,6 +49,39 @@ functions:
 
 resources:
   Resources:
+    UserConnectionTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: user-connection-table-${sls:stage}
+    EmoteTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: emoteId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: emoteId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: emote-table-${sls:stage} 
+    EmoteReactionTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: emoteReactionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: emoteReactionId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: emote-reaction-table-${sls:stage}
     UsersTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -64,6 +92,33 @@ resources:
           - AttributeName: userId
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
-        UserConnectionTableName: ${param:UserConnectionTableName}
-        EmoteTableName: ${param:EmoteTableName}
-        UserTableName: ${param:UserTableName}
+        TableName: "users-table-${sls:stage}"
+
+plugins:
+  - serverless-dynamodb
+  - serverless-offline
+
+custom:
+  serverless-dynamodb:
+    stages:
+      - offline
+    start:
+      port: 8000
+      inMemory: true
+      heapInitial: 200m
+      heapMax: 1g
+      migrate: true
+      seed: true
+      convertEmptyValues: true
+    
+    seed:
+      dev:
+        sources:
+          - table: user-connection-table-offline
+            sources: [./seed/user-connection-table-offline.json]
+          - table: emote-table-offline
+            sources: [./seed/emote-table-offline.json]
+          - table: emote-reaction-table-offline
+            sources: [./seed/emote-reaction-table-offline.json]
+          - table: users-table-offline
+            sources: [./seed/users-table-offline.json]

@@ -1,0 +1,12 @@
+[
+    {
+        "userId": "@hoge_hoge",
+        "userAvatarUrl": "https://zos.alipayobjects.com/rmsportal/ODTLcjxAfvqbxHnVXCYX.png",
+        "userName": "Hoge"
+    },
+    {
+        "userId": "@fuga_fuga",
+        "userAvatarUrl": "https://zos.alipayobjects.com/rmsportal/ODTLcjxAfvqbxHnVXCYX.png",
+        "userName": "Fuga Fuga"
+    }
+]

@@ -3,12 +3,15 @@
     "version": "1.0.0",
     "description": "",
     "scripts": {
+        "dev offline": "serverless offline --stage offline",
+        "dev development env": "serverless deploy --stage dev --region us-west-2",
+        "dynamodb install": "serverless dynamodb install",
+        "dynamodb start": "serverless dynamodb start --stage offline",
         "test": "jest"
     },
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.585.0",
         "@aws-sdk/lib-dynamodb": "^3.585.0",
-        "express": "^4.19.2",
         "serverless-http": "^3.2.0"
     },
     "devDependencies": {
@@ -22,6 +25,8 @@
         "guid-typescript": "^1.0.9",
         "jest": "^29.7.0",
         "prettier": "^3.4.2",
+        "serverless-dynamodb": "^0.2.56",
+        "serverless-offline": "^14.4.0",
         "ts-jest": "^29.2.5",
         "typescript": "^5.7.2"
     },

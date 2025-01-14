@@ -1,0 +1,12 @@
+[
+    {
+        "userId": "@hoge_hoge",
+        "userAvatarUrl": "Hoge.png",
+        "userName": "Hoge"
+    },
+    {
+        "userId": "@fuga_fuga",
+        "userAvatarUrl": "Fuga.png",
+        "userName": "Fuga Fuga"
+    }
+]

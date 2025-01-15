@@ -8,7 +8,10 @@ service: wordless-backend-emote
 stages:
   default:
     params:
-      tableName: "users-table-${sls:stage}"
+      UserConnectionTableName: "user-connection-table-${sls:stage}"
+      EmoteTableName: "emote-table-${sls:stage}"
+      EmoteReactionTableName: "emote-reaction-table-${sls:stage}"
+      UserTableName: "user-table-${sls:stage}"
 
 provider:
   name: aws
@@ -27,13 +30,27 @@ provider:
           Resource:
             - Fn::GetAtt: [UsersTable, Arn]
   environment:
-    USERS_TABLE: ${param:tableName}
+    USER_CONNECTION_TABLE: ${param:UserConnectionTableName}
+    EMOTE_TABLE: ${param:EmoteTableName}
+    EMOTE_REACTION_TABLE: ${params.EmoteReactionTableName}
+    USER_TABLE: ${param:UserTableName}
 
 functions:
-  api:
-    handler: handler.handler
+  connect:
+    handler: onconnect/handler.connect
     events:
-      - httpApi: "*"
+      - websocket:
+          route: $connect
+  disconnect:
+    handler: ondisconnect/handler.disconnect
+    events:
+      - websocket:
+          route: $disconnect
+  default:
+    handler: sendEmotes/handler.sendEmotes
+    events:
+      - websocket:
+          route: $default
 
 resources:
   Resources:
@@ -47,4 +64,6 @@ resources:
           - AttributeName: userId
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
-        TableName: ${param:tableName}
+        UserConnectionTableName: ${param:UserConnectionTableName}
+        EmoteTableName: ${param:EmoteTableName}
+        UserTableName: ${param:UserTableName}

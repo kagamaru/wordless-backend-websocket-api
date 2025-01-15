@@ -29,6 +29,7 @@ provider:
     EMOTE_TABLE: "emote-table-${sls:stage}"
     EMOTE_REACTION_TABLE: "emote-reaction-table-${sls:stage}"
     USERS_TABLE: "users-table-${sls:stage}"
+    DEPLOY_ENV: ${sls:stage}
 
 functions:
   connect:

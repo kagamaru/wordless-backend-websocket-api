@@ -33,17 +33,17 @@ provider:
 
 functions:
   connect:
-    handler: onconnect/handler.connect
+    handler: app/onconnect/handler.connect
     events:
       - websocket:
           route: $connect
   disconnect:
-    handler: ondisconnect/handler.disconnect
+    handler: app/ondisconnect/handler.disconnect
     events:
       - websocket:
           route: $disconnect
   default:
-    handler: sendEmotes/handler.sendEmotes
+    handler: app/sendEmotes/handler.sendEmotes
     events:
       - websocket:
           route: $default

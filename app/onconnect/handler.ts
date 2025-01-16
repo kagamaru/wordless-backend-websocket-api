@@ -3,8 +3,8 @@ import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { Guid } from "guid-typescript";
-import { getDynamoDBClient } from "../helpers/getDynamoDBClient";
-import { onConnectResponse } from "../classes/onConnectResponse";
+import { getDynamoDBClient } from "@/utility/getDynamoDBClient";
+import { onConnectResponse } from "@/classes/onConnectResponse";
 
 const {
     USER_CONNECTION_TABLE,

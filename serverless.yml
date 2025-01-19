@@ -21,15 +21,17 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [UserConnectionTable, Arn]
-            - Fn::GetAtt: [EmoteTable, Arn]
             - Fn::GetAtt: [EmoteReactionTable, Arn]
             - Fn::GetAtt: [UserTable, Arn]
   environment:
     USER_CONNECTION_TABLE: "user-connection-table-${sls:stage}"
-    EMOTE_TABLE: "emote-table-${sls:stage}"
     EMOTE_REACTION_TABLE: "emote-reaction-table-${sls:stage}"
     USERS_TABLE: "users-table-${sls:stage}"
     DEPLOY_ENV: ${sls:stage}
+    DB_HOST: ${self:custom.db_host.${sls:stage}}
+    DB_USER: ${self:custom.db_user.${sls:stage}}
+    DB_PASSWORD: ${self:custom.db_password.${sls:stage}}
+    DB_NAME: ${self:custom.db_name.${sls:stage}}
 
 functions:
   connect:
@@ -37,16 +39,37 @@ functions:
     events:
       - websocket:
           route: $connect
+    vpc:
+      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
+      subnetIds:
+        - ${self:custom.vpc_subnet_id_1.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_2.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_3.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_4.${sls:stage}}
   disconnect:
     handler: app/ondisconnect/handler.disconnect
     events:
       - websocket:
           route: $disconnect
+    vpc:
+      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
+      subnetIds:
+        - ${self:custom.vpc_subnet_id_1.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_2.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_3.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_4.${sls:stage}}
   default:
     handler: app/sendEmotes/handler.sendEmotes
     events:
       - websocket:
           route: $default
+    vpc:
+      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
+      subnetIds:
+        - ${self:custom.vpc_subnet_id_1.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_2.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_3.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_4.${sls:stage}}
 
 resources:
   Resources:
@@ -61,17 +84,6 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
         TableName: user-connection-table-${sls:stage}
-    EmoteTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: emoteId
-            AttributeType: S
-        KeySchema:
-          - AttributeName: emoteId
-            KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
-        TableName: emote-table-${sls:stage} 
     EmoteReactionTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -100,6 +112,42 @@ plugins:
   - serverless-offline
 
 custom:
+  security-group-id:
+    offline: ${env:VPC_SECURITY_GROUP_ID}
+    dev: ${env:VPC_SECURITY_GROUP_ID}
+    prod: ${env:VPC_SECURITY_GROUP_ID}
+  vpc_subnet_id_1:
+    offline: ${env:VPC_SUBNET_ID_1}
+    dev: ${env:VPC_SUBNET_ID_1}
+    prod: ${env:VPC_SUBNET_ID_1}
+  vpc_subnet_id_2:
+    offline: ${env:VPC_SUBNET_ID_2}
+    dev: ${env:VPC_SUBNET_ID_2}
+    prod: ${env:VPC_SUBNET_ID_2}
+  vpc_subnet_id_3:
+    offline: ${env:VPC_SUBNET_ID_3}
+    dev: ${env:VPC_SUBNET_ID_3}
+    prod: ${env:VPC_SUBNET_ID_3}
+  vpc_subnet_id_4:
+    offline: ${env:VPC_SUBNET_ID_4}
+    dev: ${env:VPC_SUBNET_ID_4}
+    prod: ${env:VPC_SUBNET_ID_4}
+  db_host:
+    offline: ${env:DB_HOST}
+    dev: ${env:DB_HOST}
+    prod: ${env:DB_HOST}
+  db_user:
+    offline: ${env:DB_USER}
+    dev: ${env:DB_USER}
+    prod: ${env:DB_USER}
+  db_password:
+    offline: ${env:DB_PASSWORD}
+    dev: ${env:DB_PASSWORD}
+    prod: ${env:DB_PASSWORD}
+  db_name:
+    offline: ${env:DB_NAME}
+    dev: ${env:DB_NAME}
+    prod: ${env:DB_NAME}
   serverless-dynamodb:
     stages:
       - offline
@@ -117,8 +165,6 @@ custom:
         sources:
           - table: user-connection-table-offline
             sources: [./seed/user-connection-table-offline.json]
-          - table: emote-table-offline
-            sources: [./seed/emote-table-offline.json]
           - table: emote-reaction-table-offline
             sources: [./seed/emote-reaction-table-offline.json]
           - table: users-table-offline

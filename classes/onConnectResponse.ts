@@ -10,7 +10,6 @@ export class onConnectResponse {
         emojiId: string;
         numberOfReactions: number;
     }>;
-    public connectionId: string;
 
     constructor(
         emoteId: string,
@@ -21,7 +20,6 @@ export class onConnectResponse {
         emoteEmojis: Array<{ emojiId: string }>,
         userAvatarUrl: string,
         emoteReactionEmojis: Array<EmoteReactionEmojiWithNumber>,
-        connectionId: string,
     ) {
         this.emoteId = emoteId;
         this.userName = userName;
@@ -31,7 +29,6 @@ export class onConnectResponse {
         this.emoteEmojis = emoteEmojis;
         this.userAvatarUrl = userAvatarUrl;
         this.emoteReactionEmojis = emoteReactionEmojis;
-        this.connectionId = connectionId;
     }
 }
 

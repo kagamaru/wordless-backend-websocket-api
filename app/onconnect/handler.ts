@@ -1,42 +1,56 @@
-import { AttributeValue, ScanCommand } from "@aws-sdk/client-dynamodb";
+import { AttributeValue } from "@aws-sdk/client-dynamodb";
 import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { Guid } from "guid-typescript";
-import { getDynamoDBClient } from "@/utility/getDynamoDBClient";
 import { onConnectResponse } from "@/classes/onConnectResponse";
-
-const {
-    USER_CONNECTION_TABLE,
-    EMOTE_TABLE,
-    EMOTE_REACTION_TABLE,
-    USERS_TABLE,
-} = process.env;
+import { envConfig } from "@/config";
+import { getDynamoDBClient } from "@/utility/getDynamoDBClient";
+import { getRDSDBClient } from "@/utility/getRDSDBClient";
 
 const docClient = getDynamoDBClient();
+const mysqlClient = getRDSDBClient();
 
 dayjs.locale("ja");
 
-export const connect = async (event: any) => {
-    const { userId } = event.data;
-    if (!userId) {
+type OnConnectRequest = {
+    body: {
+        userId: string;
+        numberOfCompletedAcquisitionsCompleted: number;
+    };
+};
+
+export const connect = async (
+    event: OnConnectRequest,
+): Promise<
+    APIResponse<{ connectResponse: ConnectResponse[]; connectionId: string }>
+> => {
+    // NOTE: wscatはConnect時のリクエスト渡しをサポートしていないので、offlineでのテスト時はコメントを外す
+    // const event = {
+    //     body: {
+    //         userId: "@fuga_fuga",
+    //         numberOfCompletedAcquisitionsCompleted: 10,
+    //     },
+    // };
+    const { userId, numberOfCompletedAcquisitionsCompleted } = event.body;
+    if (!userId || !numberOfCompletedAcquisitionsCompleted) {
         return {
             statusCode: 400,
             body: {
-                error: "EMT-05",
+                error: "EMT-01",
             },
         };
     }
-    const connectionId = Guid.create();
+    const connectionId = Guid.create().toString();
 
     try {
         await docClient.send(
             new PutCommand({
-                TableName: USER_CONNECTION_TABLE,
+                TableName: envConfig.USER_CONNECTION_TABLE,
                 Item: {
-                    connectionId: connectionId.toString(),
+                    connectionId,
                     userId,
-                    timestamp: dayjs().toString(),
+                    timestamp: dayjs().unix(),
                 },
             }),
         );
@@ -44,38 +58,45 @@ export const connect = async (event: any) => {
         return {
             statusCode: 500,
             body: {
-                error: "UCN-04",
+                error: "EMT-02",
             },
         };
     }
 
     let emotes: Record<string, AttributeValue>[] = [];
     try {
-        emotes = (
-            await docClient.send(
-                new ScanCommand({
-                    TableName: EMOTE_TABLE,
-                }),
-            )
-        ).Items;
+        emotes = await mysqlClient.query(
+            `SELECT * FROM wordlessdb.emote_table WHERE is_deleted = 0 ORDER BY emote_datetime DESC LIMIT ${event.body.numberOfCompletedAcquisitionsCompleted}`,
+        );
+        await mysqlClient.end();
     } catch (error) {
         return {
             statusCode: 500,
             body: {
-                error: "EMT-04",
+                error: "EMT-03",
             },
         };
     }
 
-    const response = await Promise.all(
+    const connectResponse = await Promise.all(
         emotes.map(async (emote) => {
-            let userInfo: Record<string, any>;
-            let emoteReaction: Record<string, any>;
+            let userInfo: Record<
+                "userId" | "userAvatarUrl" | "userName",
+                string
+            >;
+            let emoteReaction: Record<"emoteReactionId", string> &
+                Record<
+                    "emoteReactionEmojis",
+                    Array<{
+                        emojiId: `:${string}:`;
+                        numberOfReactions: number;
+                    }>
+                >;
             try {
                 userInfo = (
                     await docClient.send(
                         new GetCommand({
-                            TableName: USERS_TABLE,
+                            TableName: envConfig.USERS_TABLE,
                             Key: {
                                 userId: emote.userId.S,
                             },
@@ -83,14 +104,14 @@ export const connect = async (event: any) => {
                     )
                 ).Item;
             } catch {
-                return "User Table Connection Error";
+                return "UserTableConnectionError";
             }
 
             try {
                 emoteReaction = (
                     await docClient.send(
                         new GetCommand({
-                            TableName: EMOTE_REACTION_TABLE,
+                            TableName: envConfig.EMOTE_REACTION_TABLE,
                             Key: {
                                 emoteReactionId: emote.emoteReactionId.S,
                             },
@@ -98,45 +119,58 @@ export const connect = async (event: any) => {
                     )
                 ).Item;
             } catch {
-                return "Emote Reaction Table Connection Error";
+                return "EmoteReactionTableConnectionError";
             }
 
             return new onConnectResponse(
                 emote.emoteId.S,
                 userInfo.userName,
                 emote.userId.S,
-                emote.emoteDatetime.S,
+                emote.emoteDatetime.N,
                 emote.emoteReactionId.S,
                 emote.emoteEmojis.L.map((emoteEmoji) => {
-                    return { emojiId: emoteEmoji.S };
+                    return { emojiId: emoteEmoji.M.emojiId.S };
                 }),
                 userInfo.userAvatarUrl,
-                emoteReaction.emoteReactionEmojis,
-                connectionId.toString(),
+                emoteReaction?.emoteReactionEmojis,
             );
         }),
     );
 
-    if (response.includes("User Table Connection Error")) {
+    if (
+        connectResponse.every(
+            (element: onConnectResponse) =>
+                element === "UserTableConnectionError" ||
+                element === "EmoteReactionTableConnectionError",
+        )
+    ) {
         return {
             statusCode: 500,
             body: {
-                error: "USE-02",
+                error: "EMT-04",
             },
         };
-    } else if (response.includes("Emote Reaction Table Connection Error")) {
+    } else if (
+        connectResponse.includes("Emote Reaction Table Connection Error")
+    ) {
         return {
             statusCode: 500,
             body: {
-                error: "EMR-02",
+                error: "EMT-05",
             },
         };
     }
 
     return {
         statusCode: 200,
+        // NOTE: 型エラーを防止する
         body: {
-            response,
+            connectResponse: connectResponse.filter(
+                (element) =>
+                    element !== "UserTableConnectionError" &&
+                    element !== "EmoteReactionTableConnectionError",
+            ),
+            connectionId,
         },
     };
 };

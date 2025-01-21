@@ -1,4 +1,5 @@
-export class onConnectResponse {
+export class ConnectResponse {
+    public sequenceNumber: number;
     public emoteId: string;
     public userName: string;
     public userId: string;
@@ -12,6 +13,7 @@ export class onConnectResponse {
     }>;
 
     constructor(
+        sequenceNumber: number,
         emoteId: string,
         userName: string,
         userId: string,
@@ -21,6 +23,7 @@ export class onConnectResponse {
         userAvatarUrl: string,
         emoteReactionEmojis: Array<EmoteReactionEmojiWithNumber>,
     ) {
+        this.sequenceNumber = sequenceNumber;
         this.emoteId = emoteId;
         this.userName = userName;
         this.userId = userId;

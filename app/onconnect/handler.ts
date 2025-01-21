@@ -1,19 +1,18 @@
-import { AttributeValue } from "@aws-sdk/client-dynamodb";
 import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { Guid } from "guid-typescript";
-import { onConnectResponse } from "@/classes/onConnectResponse";
+import { ConnectResponse } from "@/classes/ConnectResponse";
 import { envConfig } from "@/config";
-import { getDynamoDBClient } from "@/utility/getDynamoDBClient";
-import { getRDSDBClient } from "@/utility/getRDSDBClient";
+import { APIResponse, Emote } from "@/@types";
+import { getDynamoDBClient, getRDSDBClient } from "@/utility";
 
 const docClient = getDynamoDBClient();
 const mysqlClient = getRDSDBClient();
 
 dayjs.locale("ja");
 
-type OnConnectRequest = {
+type ConnectRequest = {
     body: {
         userId: string;
         numberOfCompletedAcquisitionsCompleted: number;
@@ -21,7 +20,7 @@ type OnConnectRequest = {
 };
 
 export const connect = async (
-    event: OnConnectRequest,
+    event: ConnectRequest,
 ): Promise<
     APIResponse<{ connectResponse: ConnectResponse[]; connectionId: string }>
 > => {
@@ -33,7 +32,7 @@ export const connect = async (
     //     },
     // };
     const { userId, numberOfCompletedAcquisitionsCompleted } = event.body;
-    if (!userId || !numberOfCompletedAcquisitionsCompleted) {
+    if (!event.body || !userId || !numberOfCompletedAcquisitionsCompleted) {
         return {
             statusCode: 400,
             body: {
@@ -50,7 +49,7 @@ export const connect = async (
                 Item: {
                     connectionId,
                     userId,
-                    timestamp: dayjs().unix(),
+                    timestamp: dayjs().toString(),
                 },
             }),
         );
@@ -63,7 +62,7 @@ export const connect = async (
         };
     }
 
-    let emotes: Record<string, AttributeValue>[] = [];
+    let emotes = new Array<Emote>();
     try {
         emotes = await mysqlClient.query(
             `SELECT * FROM wordlessdb.emote_table WHERE is_deleted = 0 ORDER BY emote_datetime DESC LIMIT ${event.body.numberOfCompletedAcquisitionsCompleted}`,
@@ -98,61 +97,65 @@ export const connect = async (
                         new GetCommand({
                             TableName: envConfig.USERS_TABLE,
                             Key: {
-                                userId: emote.userId.S,
+                                userId: emote.user_id,
                             },
                         }),
                     )
                 ).Item;
-            } catch {
+            } catch (error) {
                 return "UserTableConnectionError";
             }
 
             try {
+                // NOTE: ResponseがAny型になってしまうので、as で補正
                 emoteReaction = (
                     await docClient.send(
                         new GetCommand({
                             TableName: envConfig.EMOTE_REACTION_TABLE,
                             Key: {
-                                emoteReactionId: emote.emoteReactionId.S,
+                                emoteReactionId: emote.emote_reaction_id,
                             },
                         }),
                     )
-                ).Item;
-            } catch {
+                ).Item as Record<"emoteReactionId", string> &
+                    Record<
+                        "emoteReactionEmojis",
+                        Array<{
+                            emojiId: `:${string}:`;
+                            numberOfReactions: number;
+                        }>
+                    >;
+            } catch (error) {
                 return "EmoteReactionTableConnectionError";
             }
 
-            return new onConnectResponse(
-                emote.emoteId.S,
+            return new ConnectResponse(
+                emote.sequence_number,
+                emote.emote_id,
                 userInfo.userName,
-                emote.userId.S,
-                emote.emoteDatetime.N,
-                emote.emoteReactionId.S,
-                emote.emoteEmojis.L.map((emoteEmoji) => {
-                    return { emojiId: emoteEmoji.M.emojiId.S };
-                }),
+                emote.user_id,
+                emote.emote_datetime,
+                emote.emote_reaction_id,
+                [
+                    { emojiId: emote.emote_emoji1 },
+                    { emojiId: emote.emote_emoji2 },
+                    { emojiId: emote.emote_emoji3 },
+                    { emojiId: emote.emote_emoji4 },
+                ],
                 userInfo.userAvatarUrl,
                 emoteReaction?.emoteReactionEmojis,
             );
         }),
     );
 
-    if (
-        connectResponse.every(
-            (element: onConnectResponse) =>
-                element === "UserTableConnectionError" ||
-                element === "EmoteReactionTableConnectionError",
-        )
-    ) {
+    if (connectResponse.includes("UserTableConnectionError")) {
         return {
             statusCode: 500,
             body: {
                 error: "EMT-04",
             },
         };
-    } else if (
-        connectResponse.includes("Emote Reaction Table Connection Error")
-    ) {
+    } else if (connectResponse.includes("EmoteReactionTableConnectionError")) {
         return {
             statusCode: 500,
             body: {

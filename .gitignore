@@ -1,2 +1,6 @@
 node_modules
 .serverless
+.dynamodb
+undefined/temp/tsx-kagam/*
+.env
+.env.prod

@@ -308,6 +308,46 @@ describe("異常系", () => {
         });
     });
 
+    test("リクエストのuserIdが空文字の時、ステータスコード400とEMT-01を返す", async () => {
+        testSetUp({
+            isUserConnectionDBSetup: true,
+            isUserDBSetup: true,
+            isEmoteReactionDBSetup: true,
+        });
+
+        const response = await connect({
+            body: {
+                userId: "",
+                numberOfCompletedAcquisitionsCompleted: 10,
+            },
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-01",
+        });
+    });
+
+    test("リクエストのnumberOfCompletedAcquisitionsCompletedが0の時、ステータスコード400とEMT-01を返す", async () => {
+        testSetUp({
+            isUserConnectionDBSetup: true,
+            isUserDBSetup: true,
+            isEmoteReactionDBSetup: true,
+        });
+
+        const response = await connect({
+            body: {
+                userId: "@a",
+                numberOfCompletedAcquisitionsCompleted: 0,
+            },
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-01",
+        });
+    });
+
     test("リクエストのnumberOfCompletedAcquisitionsCompletedが空の時、ステータスコード400とEMT-01を返す", async () => {
         testSetUp({
             isUserConnectionDBSetup: true,

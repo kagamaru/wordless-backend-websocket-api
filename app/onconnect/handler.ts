@@ -13,7 +13,7 @@ const mysqlClient = getRDSDBClient();
 dayjs.locale("ja");
 
 type ConnectRequest = {
-    body: {
+    body?: {
         userId: string;
         numberOfCompletedAcquisitionsCompleted: number;
     };
@@ -31,7 +31,11 @@ export const connect = async (
     //         numberOfCompletedAcquisitionsCompleted: 10,
     //     },
     // };
-    if (!event.body) {
+    if (
+        !event.body?.userId ||
+        !event.body?.numberOfCompletedAcquisitionsCompleted ||
+        event.body.userId.trim() === ""
+    ) {
         return {
             statusCode: 400,
             body: {
@@ -39,15 +43,8 @@ export const connect = async (
             },
         };
     }
+
     const { userId, numberOfCompletedAcquisitionsCompleted } = event.body;
-    if (!userId || !numberOfCompletedAcquisitionsCompleted) {
-        return {
-            statusCode: 400,
-            body: {
-                error: "EMT-01",
-            },
-        };
-    }
     const connectionId = Guid.create().toString();
 
     try {
@@ -73,7 +70,7 @@ export const connect = async (
     let emotes = new Array<Emote>();
     try {
         emotes = await mysqlClient.query(
-            `SELECT * FROM wordlessdb.emote_table WHERE is_deleted = 0 ORDER BY emote_datetime DESC LIMIT ${event.body.numberOfCompletedAcquisitionsCompleted}`,
+            `SELECT * FROM wordlessdb.emote_table WHERE is_deleted = 0 ORDER BY emote_datetime DESC LIMIT ${numberOfCompletedAcquisitionsCompleted}`,
         );
         await mysqlClient.end();
     } catch (error) {

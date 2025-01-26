@@ -270,7 +270,24 @@ describe("接続時", () => {
     });
 });
 
-describe("異常時", () => {
+describe("異常系", () => {
+    test("リクエストのbodyが空の時、ステータスコード400とEMT-01を返す", async () => {
+        testSetUp({
+            isUserConnectionDBSetup: true,
+            isUserDBSetup: true,
+            isEmoteReactionDBSetup: true,
+        });
+
+        const response = await connect({
+            body: undefined,
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-01",
+        });
+    });
+
     test("リクエストのuserIdが空の時、ステータスコード400とEMT-01を返す", async () => {
         testSetUp({
             isUserConnectionDBSetup: true,

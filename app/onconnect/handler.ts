@@ -31,8 +31,16 @@ export const connect = async (
     //         numberOfCompletedAcquisitionsCompleted: 10,
     //     },
     // };
+    if (!event.body) {
+        return {
+            statusCode: 400,
+            body: {
+                error: "EMT-01",
+            },
+        };
+    }
     const { userId, numberOfCompletedAcquisitionsCompleted } = event.body;
-    if (!event.body || !userId || !numberOfCompletedAcquisitionsCompleted) {
+    if (!userId || !numberOfCompletedAcquisitionsCompleted) {
         return {
             statusCode: 400,
             body: {

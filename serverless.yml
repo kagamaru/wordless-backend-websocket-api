@@ -22,7 +22,7 @@ provider:
           Resource:
             - Fn::GetAtt: [UserConnectionTable, Arn]
             - Fn::GetAtt: [EmoteReactionTable, Arn]
-            - Fn::GetAtt: [UserTable, Arn]
+            - arn:aws:dynamodb:us-west-2:${aws:accountId}:table/users-table-${sls:stage}
   environment:
     USER_CONNECTION_TABLE: "user-connection-table-${sls:stage}"
     EMOTE_REACTION_TABLE: "emote-reaction-table-${sls:stage}"
@@ -32,6 +32,7 @@ provider:
     DB_USER: ${self:custom.db_user.${sls:stage}}
     DB_PASSWORD: ${self:custom.db_password.${sls:stage}}
     DB_NAME: ${self:custom.db_name.${sls:stage}}
+  websocketsApiName: wordless-backend-websocket-${sls:stage}
 
 functions:
   connect:
@@ -72,6 +73,8 @@ functions:
         - ${self:custom.vpc_subnet_id_4.${sls:stage}}
 
 resources:
+  Conditions:
+    IsOffline: !Equals ["${sls:stage}", "offline"]
   Resources:
     UserConnectionTable:
       Type: AWS::DynamoDB::Table
@@ -97,6 +100,7 @@ resources:
         TableName: emote-reaction-table-${sls:stage}
     UsersTable:
       Type: AWS::DynamoDB::Table
+      Condition: IsOffline
       Properties:
         AttributeDefinitions:
           - AttributeName: userId

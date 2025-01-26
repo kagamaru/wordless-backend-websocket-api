@@ -32,6 +32,7 @@ provider:
     DB_USER: ${self:custom.db_user.${sls:stage}}
     DB_PASSWORD: ${self:custom.db_password.${sls:stage}}
     DB_NAME: ${self:custom.db_name.${sls:stage}}
+  websocketsApiName: wordless-backend-websocket-${sls:stage}
 
 functions:
   connect:

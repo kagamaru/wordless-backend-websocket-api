@@ -76,6 +76,19 @@ describe("切断時", () => {
             });
         });
 
+        test("connectionIdが空文字であれば、400エラーと EMT-91を返す", async () => {
+            mockDdbSetup();
+
+            const response = await disconnect({
+                body: { connectionId: "" },
+            });
+
+            expect(response.statusCode).toBe(400);
+            expect(response.body).toEqual({
+                error: "EMT-91",
+            });
+        });
+
         test("UserConnectionTableと接続できなければ、500エラーとEMT-92を返す", async () => {
             ddbMock
                 .on(DeleteCommand, {

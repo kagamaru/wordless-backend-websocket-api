@@ -35,7 +35,7 @@ provider:
   websocketsApiName: wordless-backend-websocket-${sls:stage}
 
 functions:
-  connect:
+  connectionHandler:
     handler: app/onconnect/handler.connect
     events:
       - websocket:
@@ -47,7 +47,7 @@ functions:
         - ${self:custom.vpc_subnet_id_2.${sls:stage}}
         - ${self:custom.vpc_subnet_id_3.${sls:stage}}
         - ${self:custom.vpc_subnet_id_4.${sls:stage}}
-  disconnect:
+  disconnectionHandler:
     handler: app/ondisconnect/handler.disconnect
     events:
       - websocket:
@@ -59,7 +59,7 @@ functions:
         - ${self:custom.vpc_subnet_id_2.${sls:stage}}
         - ${self:custom.vpc_subnet_id_3.${sls:stage}}
         - ${self:custom.vpc_subnet_id_4.${sls:stage}}
-  default:
+  defaultHandler:
     handler: app/sendEmotes/handler.sendEmotes
     events:
       - websocket:

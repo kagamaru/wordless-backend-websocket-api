@@ -2,9 +2,9 @@ import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { Guid } from "guid-typescript";
-import { ConnectResponse } from "@/classes/ConnectResponse";
+import { Emote } from "@/classes/Emote";
 import { envConfig } from "@/config";
-import { APIResponse, Emote } from "@/@types";
+import { APIResponse, FetchedEmote } from "@/@types";
 import { getDynamoDBClient, getRDSDBClient } from "@/utility";
 
 const docClient = getDynamoDBClient();
@@ -21,9 +21,7 @@ type ConnectRequest = {
 
 export const connect = async (
     event: ConnectRequest,
-): Promise<
-    APIResponse<{ connectResponse: ConnectResponse[]; connectionId: string }>
-> => {
+): Promise<APIResponse<{ emotes: Emote[]; connectionId: string }>> => {
     // NOTE: wscatはConnect時のリクエスト渡しをサポートしていないので、offlineでのテスト時はコメントを外す
     // const event = {
     //     body: {
@@ -67,7 +65,7 @@ export const connect = async (
         };
     }
 
-    let emotes = new Array<Emote>();
+    let emotes = new Array<FetchedEmote>();
     try {
         emotes = await mysqlClient.query(
             `SELECT * FROM wordlessdb.emote_table WHERE is_deleted = 0 ORDER BY emote_datetime DESC LIMIT ${numberOfCompletedAcquisitionsCompleted}`,
@@ -82,7 +80,7 @@ export const connect = async (
         };
     }
 
-    const connectResponse = await Promise.all(
+    const response = await Promise.all(
         emotes.map(async (emote) => {
             let userInfo: Record<
                 "userId" | "userAvatarUrl" | "userName",
@@ -134,7 +132,7 @@ export const connect = async (
                 return "EmoteReactionTableConnectionError";
             }
 
-            return new ConnectResponse(
+            return new Emote(
                 emote.sequence_number,
                 emote.emote_id,
                 userInfo.userName,
@@ -153,14 +151,14 @@ export const connect = async (
         }),
     );
 
-    if (connectResponse.includes("UserTableConnectionError")) {
+    if (response.includes("UserTableConnectionError")) {
         return {
             statusCode: 500,
             body: {
                 error: "EMT-04",
             },
         };
-    } else if (connectResponse.includes("EmoteReactionTableConnectionError")) {
+    } else if (response.includes("EmoteReactionTableConnectionError")) {
         return {
             statusCode: 500,
             body: {
@@ -173,7 +171,7 @@ export const connect = async (
         statusCode: 200,
         // NOTE: 型エラーを防止する
         body: {
-            connectResponse: connectResponse.filter(
+            emotes: response.filter(
                 (element) =>
                     element !== "UserTableConnectionError" &&
                     element !== "EmoteReactionTableConnectionError",

@@ -13,7 +13,7 @@ const mysqlClient = getRDSDBClient();
 dayjs.locale("ja");
 
 type ConnectRequest = {
-    body?: {
+    queryStringParameters?: {
         userId: string;
         numberOfCompletedAcquisitionsCompleted: number;
     };
@@ -24,15 +24,15 @@ export const connect = async (
 ): Promise<APIResponse<{ emotes: Emote[]; connectionId: string }>> => {
     // NOTE: wscatはConnect時のリクエスト渡しをサポートしていないので、offlineでのテスト時はコメントを外す
     // const event = {
-    //     body: {
+    //     queryStringParameters: {
     //         userId: "@fuga_fuga",
     //         numberOfCompletedAcquisitionsCompleted: 10,
     //     },
     // };
     if (
-        !event.body?.userId ||
-        !event.body?.numberOfCompletedAcquisitionsCompleted ||
-        event.body.userId.trim() === ""
+        !event.queryStringParameters?.userId ||
+        !event.queryStringParameters?.numberOfCompletedAcquisitionsCompleted ||
+        event.queryStringParameters.userId.trim() === ""
     ) {
         return {
             statusCode: 400,
@@ -42,7 +42,8 @@ export const connect = async (
         };
     }
 
-    const { userId, numberOfCompletedAcquisitionsCompleted } = event.body;
+    const { userId, numberOfCompletedAcquisitionsCompleted } =
+        event.queryStringParameters;
     const connectionId = Guid.create().toString();
 
     try {

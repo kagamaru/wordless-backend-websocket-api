@@ -188,7 +188,7 @@ describe("接続時", () => {
 
         // Act
         const response = await connect({
-            body: {
+            queryStringParameters: {
                 userId: "@a",
                 numberOfCompletedAcquisitionsCompleted: 10,
             },
@@ -257,7 +257,7 @@ describe("接続時", () => {
         });
 
         await connect({
-            body: {
+            queryStringParameters: {
                 userId: "@a",
                 numberOfCompletedAcquisitionsCompleted: 10,
             },
@@ -279,7 +279,7 @@ describe("異常系", () => {
         });
 
         const response = await connect({
-            body: undefined,
+            queryStringParameters: undefined,
         });
 
         expect(response.statusCode).toBe(400);
@@ -296,7 +296,7 @@ describe("異常系", () => {
         });
 
         const response = await connect({
-            body: {
+            queryStringParameters: {
                 userId: undefined,
                 numberOfCompletedAcquisitionsCompleted: 10,
             },
@@ -316,7 +316,7 @@ describe("異常系", () => {
         });
 
         const response = await connect({
-            body: {
+            queryStringParameters: {
                 userId: "",
                 numberOfCompletedAcquisitionsCompleted: 10,
             },
@@ -336,7 +336,7 @@ describe("異常系", () => {
         });
 
         const response = await connect({
-            body: {
+            queryStringParameters: {
                 userId: "@a",
                 numberOfCompletedAcquisitionsCompleted: 0,
             },
@@ -356,7 +356,7 @@ describe("異常系", () => {
         });
 
         const response = await connect({
-            body: {
+            queryStringParameters: {
                 userId: "@a",
                 numberOfCompletedAcquisitionsCompleted: undefined,
             },
@@ -376,7 +376,7 @@ describe("異常系", () => {
         });
 
         const response = await connect({
-            body: {
+            queryStringParameters: {
                 userId: "@a",
                 numberOfCompletedAcquisitionsCompleted: 10,
             },
@@ -397,7 +397,7 @@ describe("異常系", () => {
         });
 
         const response = await connect({
-            body: {
+            queryStringParameters: {
                 userId: "@a",
                 numberOfCompletedAcquisitionsCompleted: 10,
             },
@@ -417,7 +417,7 @@ describe("異常系", () => {
         });
 
         const response = await connect({
-            body: {
+            queryStringParameters: {
                 userId: "@a",
                 numberOfCompletedAcquisitionsCompleted: 10,
             },
@@ -437,7 +437,7 @@ describe("異常系", () => {
         });
 
         const response = await connect({
-            body: {
+            queryStringParameters: {
                 userId: "@a",
                 numberOfCompletedAcquisitionsCompleted: 10,
             },

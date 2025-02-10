@@ -6,7 +6,7 @@ import {
     GetCommand,
     PutCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { ConnectResponse } from "@/classes/ConnectResponse";
+import { Emote } from "@/classes/Emote";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
@@ -197,8 +197,8 @@ describe("接続時", () => {
         // Assert
         expect(response.statusCode).toBe(200);
         expect(response.body).toEqual({
-            connectResponse: [
-                new ConnectResponse(
+            emotes: [
+                new Emote(
                     1,
                     "emoteId-b",
                     "B",
@@ -219,7 +219,7 @@ describe("接続時", () => {
                         },
                     ],
                 ),
-                new ConnectResponse(
+                new Emote(
                     0,
                     "emoteId-a",
                     "A",

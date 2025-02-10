@@ -1,4 +1,4 @@
-export class ConnectResponse {
+export class Emote {
     public sequenceNumber: number;
     public emoteId: string;
     public userName: string;

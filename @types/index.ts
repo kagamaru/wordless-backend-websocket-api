@@ -1,2 +1,2 @@
 export * from "@/@types/APIResponse";
-export * from "@/@types/Emote";
+export * from "@/@types/FetchedEmote";

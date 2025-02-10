@@ -1,4 +1,4 @@
-export type Emote = {
+export type FetchedEmote = {
     sequence_number: number;
     emote_id: string;
     emote_reaction_id: string;

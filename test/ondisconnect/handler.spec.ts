@@ -36,25 +36,26 @@ describe("切断時", () => {
             mockDdbSetup();
 
             expect(
-                (await disconnect({ body: { connectionId } })).statusCode,
+                (await disconnect({ queryStringParameters: { connectionId } }))
+                    .statusCode,
             ).toBe(200);
         });
 
         test("UserConnectionTableに対して削除のリクエストが送付される", async () => {
             mockDdbSetup();
 
-            await disconnect({ body: { connectionId } });
+            await disconnect({ queryStringParameters: { connectionId } });
 
             expect(ddbMock).toHaveReceivedCommand(DeleteCommand);
         });
     });
 
     describe("異常系", () => {
-        test("リクエストのbodyが空であれば、400エラーと EMT-91を返す", async () => {
+        test("リクエストのqueryStringParametersが空であれば、400エラーと EMT-91を返す", async () => {
             mockDdbSetup();
 
             const response = await disconnect({
-                body: undefined,
+                queryStringParameters: undefined,
             });
 
             expect(response.statusCode).toBe(400);
@@ -67,7 +68,7 @@ describe("切断時", () => {
             mockDdbSetup();
 
             const response = await disconnect({
-                body: { connectionId: undefined },
+                queryStringParameters: { connectionId: undefined },
             });
 
             expect(response.statusCode).toBe(400);
@@ -80,7 +81,7 @@ describe("切断時", () => {
             mockDdbSetup();
 
             const response = await disconnect({
-                body: { connectionId: "" },
+                queryStringParameters: { connectionId: "" },
             });
 
             expect(response.statusCode).toBe(400);
@@ -99,7 +100,9 @@ describe("切断時", () => {
                 })
                 .rejects(new Error());
 
-            const response = await disconnect({ body: { connectionId } });
+            const response = await disconnect({
+                queryStringParameters: { connectionId },
+            });
 
             expect(response.statusCode).toBe(500);
             expect(response.body).toEqual({

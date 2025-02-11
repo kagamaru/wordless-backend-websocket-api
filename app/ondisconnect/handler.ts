@@ -6,7 +6,7 @@ import { getDynamoDBClient } from "@/utility";
 const docClient = getDynamoDBClient();
 
 type DisConnectRequest = {
-    queryStringParameters?: {
+    requestContext: {
         connectionId: string;
     };
 };
@@ -15,9 +15,9 @@ export const disconnect = async (
     event: DisConnectRequest,
 ): Promise<APIResponse<undefined>> => {
     if (
-        !event.queryStringParameters ||
-        !event.queryStringParameters.connectionId ||
-        event.queryStringParameters.connectionId.trim() === ""
+        !event.requestContext ||
+        !event.requestContext.connectionId ||
+        event.requestContext.connectionId.trim() === ""
     ) {
         return {
             statusCode: 400,
@@ -26,7 +26,7 @@ export const disconnect = async (
             },
         };
     }
-    const { connectionId } = event.queryStringParameters;
+    const { connectionId } = event.requestContext;
 
     try {
         await docClient.send(

@@ -36,7 +36,7 @@ describe("切断時", () => {
             mockDdbSetup();
 
             expect(
-                (await disconnect({ queryStringParameters: { connectionId } }))
+                (await disconnect({ requestContext: { connectionId } }))
                     .statusCode,
             ).toBe(200);
         });
@@ -44,18 +44,18 @@ describe("切断時", () => {
         test("UserConnectionTableに対して削除のリクエストが送付される", async () => {
             mockDdbSetup();
 
-            await disconnect({ queryStringParameters: { connectionId } });
+            await disconnect({ requestContext: { connectionId } });
 
             expect(ddbMock).toHaveReceivedCommand(DeleteCommand);
         });
     });
 
     describe("異常系", () => {
-        test("リクエストのqueryStringParametersが空であれば、400エラーと EMT-91を返す", async () => {
+        test("リクエストのrequestContextが空であれば、400エラーと EMT-91を返す", async () => {
             mockDdbSetup();
 
             const response = await disconnect({
-                queryStringParameters: undefined,
+                requestContext: undefined,
             });
 
             expect(response.statusCode).toBe(400);
@@ -68,7 +68,7 @@ describe("切断時", () => {
             mockDdbSetup();
 
             const response = await disconnect({
-                queryStringParameters: { connectionId: undefined },
+                requestContext: { connectionId: undefined },
             });
 
             expect(response.statusCode).toBe(400);
@@ -81,7 +81,7 @@ describe("切断時", () => {
             mockDdbSetup();
 
             const response = await disconnect({
-                queryStringParameters: { connectionId: "" },
+                requestContext: { connectionId: "" },
             });
 
             expect(response.statusCode).toBe(400);
@@ -101,7 +101,7 @@ describe("切断時", () => {
                 .rejects(new Error());
 
             const response = await disconnect({
-                queryStringParameters: { connectionId },
+                requestContext: { connectionId },
             });
 
             expect(response.statusCode).toBe(500);

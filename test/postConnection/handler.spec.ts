@@ -1,6 +1,6 @@
 import { mockClient } from "aws-sdk-client-mock";
 import { Guid } from "guid-typescript";
-import { connect } from "@/app/onconnect/handler";
+import { postConnection } from "@/app/postConnection/handler";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -40,8 +40,8 @@ describe("接続時", () => {
         testSetUp(true);
 
         // Act
-        const response = await connect({
-            queryStringParameters: {
+        const response = await postConnection({
+            body: {
                 userId: "@a",
             },
             requestContext: {
@@ -55,11 +55,11 @@ describe("接続時", () => {
 });
 
 describe("異常系", () => {
-    test("リクエストのqueryStringParametersが空の時、ステータスコード400とEMT-01を返す", async () => {
+    test("リクエストのbodyが空の時、ステータスコード400とEMT-01を返す", async () => {
         testSetUp(true);
 
-        const response = await connect({
-            queryStringParameters: undefined,
+        const response = await postConnection({
+            body: undefined,
             requestContext: {
                 connectionId: "connectionId",
             },
@@ -74,8 +74,8 @@ describe("異常系", () => {
     test("リクエストのuserIdが空の時、ステータスコード400とEMT-01を返す", async () => {
         testSetUp(true);
 
-        const response = await connect({
-            queryStringParameters: {
+        const response = await postConnection({
+            body: {
                 userId: undefined,
             },
             requestContext: {
@@ -92,8 +92,8 @@ describe("異常系", () => {
     test("リクエストのuserIdが空文字の時、ステータスコード400とEMT-01を返す", async () => {
         testSetUp(true);
 
-        const response = await connect({
-            queryStringParameters: {
+        const response = await postConnection({
+            body: {
                 userId: "",
             },
             requestContext: {
@@ -110,8 +110,8 @@ describe("異常系", () => {
     test("リクエストのrequestContextが空の時、ステータスコード400とEMT-02を返す", async () => {
         testSetUp(true);
 
-        const response = await connect({
-            queryStringParameters: {
+        const response = await postConnection({
+            body: {
                 userId: "@a",
             },
             requestContext: undefined,
@@ -126,8 +126,8 @@ describe("異常系", () => {
     test("リクエストのconnectionIdが空の時、ステータスコード400とEMT-02を返す", async () => {
         testSetUp(true);
 
-        const response = await connect({
-            queryStringParameters: {
+        const response = await postConnection({
+            body: {
                 userId: "@a",
             },
             requestContext: {
@@ -144,8 +144,8 @@ describe("異常系", () => {
     test("リクエストのconnectionIdが空文字の時、ステータスコード400とEMT-02を返す", async () => {
         testSetUp(true);
 
-        const response = await connect({
-            queryStringParameters: {
+        const response = await postConnection({
+            body: {
                 userId: "@a",
             },
             requestContext: {
@@ -162,8 +162,8 @@ describe("異常系", () => {
     test("UserConnectionTableと接続できないとき、ステータスコード500とEMT-03を返す", async () => {
         testSetUp(false);
 
-        const response = await connect({
-            queryStringParameters: {
+        const response = await postConnection({
+            body: {
                 userId: "@a",
             },
             requestContext: {

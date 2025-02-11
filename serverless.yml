@@ -59,6 +59,30 @@ functions:
         - ${self:custom.vpc_subnet_id_2.${sls:stage}}
         - ${self:custom.vpc_subnet_id_3.${sls:stage}}
         - ${self:custom.vpc_subnet_id_4.${sls:stage}}
+  fetchEmotesHandler:
+    handler: app/fetchEmotes/handler.fetchEmotes
+    events:
+      - websocket:
+          route: fetchEmotes
+    vpc:
+      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
+      subnetIds:
+        - ${self:custom.vpc_subnet_id_1.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_2.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_3.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_4.${sls:stage}}
+  postConnectionHandler:
+    handler: app/postConnection/handler.postConnection
+    events:
+      - websocket:
+          route: postConnection
+    vpc:
+      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
+      subnetIds:
+        - ${self:custom.vpc_subnet_id_1.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_2.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_3.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_4.${sls:stage}}
   defaultHandler:
     handler: app/sendEmotes/handler.sendEmotes
     events:
@@ -114,6 +138,12 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
         TableName: "users-table-${sls:stage}"
+    WebSocketApi:
+      Type: AWS::ApiGatewayV2::Api
+      Properties:
+        Name: wordless-backend-websocket-${sls:stage}
+        ProtocolType: WEBSOCKET
+        RouteSelectionExpression: "$request.body.action"
 
 plugins:
   - serverless-dynamodb

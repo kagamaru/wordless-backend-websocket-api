@@ -44,6 +44,9 @@ describe("接続時", () => {
             queryStringParameters: {
                 userId: "@a",
             },
+            requestContext: {
+                connectionId: "connectionId",
+            },
         });
 
         // Assert
@@ -57,6 +60,9 @@ describe("異常系", () => {
 
         const response = await connect({
             queryStringParameters: undefined,
+            requestContext: {
+                connectionId: "connectionId",
+            },
         });
 
         expect(response.statusCode).toBe(400);
@@ -71,6 +77,9 @@ describe("異常系", () => {
         const response = await connect({
             queryStringParameters: {
                 userId: undefined,
+            },
+            requestContext: {
+                connectionId: "connectionId",
             },
         });
 
@@ -87,6 +96,9 @@ describe("異常系", () => {
             queryStringParameters: {
                 userId: "",
             },
+            requestContext: {
+                connectionId: "connectionId",
+            },
         });
 
         expect(response.statusCode).toBe(400);
@@ -95,18 +107,73 @@ describe("異常系", () => {
         });
     });
 
-    test("UserConnectionTableと接続できないとき、ステータスコード500とEMT-02を返す", async () => {
+    test("リクエストのrequestContextが空の時、ステータスコード400とEMT-02を返す", async () => {
+        testSetUp(true);
+
+        const response = await connect({
+            queryStringParameters: {
+                userId: "@a",
+            },
+            requestContext: undefined,
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-02",
+        });
+    });
+
+    test("リクエストのconnectionIdが空の時、ステータスコード400とEMT-02を返す", async () => {
+        testSetUp(true);
+
+        const response = await connect({
+            queryStringParameters: {
+                userId: "@a",
+            },
+            requestContext: {
+                connectionId: "",
+            },
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-02",
+        });
+    });
+
+    test("リクエストのconnectionIdが空文字の時、ステータスコード400とEMT-02を返す", async () => {
+        testSetUp(true);
+
+        const response = await connect({
+            queryStringParameters: {
+                userId: "@a",
+            },
+            requestContext: {
+                connectionId: "",
+            },
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-02",
+        });
+    });
+
+    test("UserConnectionTableと接続できないとき、ステータスコード500とEMT-03を返す", async () => {
         testSetUp(false);
 
         const response = await connect({
             queryStringParameters: {
                 userId: "@a",
             },
+            requestContext: {
+                connectionId: "connectionId",
+            },
         });
 
         expect(response.statusCode).toBe(500);
         expect(response.body).toEqual({
-            error: "EMT-02",
+            error: "EMT-03",
         });
     });
 });

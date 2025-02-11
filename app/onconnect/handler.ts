@@ -1,7 +1,6 @@
 import { PutCommand } from "@aws-sdk/lib-dynamodb";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
-import { Guid } from "guid-typescript";
 import { envConfig } from "@/config";
 import { APIResponse } from "@/@types";
 import { getDynamoDBClient } from "@/utility";
@@ -13,6 +12,9 @@ dayjs.locale("ja");
 type ConnectRequest = {
     queryStringParameters?: {
         userId: string;
+    };
+    requestContext: {
+        connectionId: string;
     };
 };
 
@@ -36,9 +38,21 @@ export const connect = async (
             },
         };
     }
-
-    const { userId } = event.queryStringParameters;
-    const connectionId = Guid.create().toString();
+    if (
+        !event.requestContext?.connectionId ||
+        event.requestContext.connectionId.trim() === ""
+    ) {
+        return {
+            statusCode: 400,
+            body: {
+                error: "EMT-02",
+            },
+        };
+    }
+    const {
+        queryStringParameters: { userId },
+        requestContext: { connectionId },
+    } = event;
 
     try {
         await docClient.send(
@@ -55,7 +69,7 @@ export const connect = async (
         return {
             statusCode: 500,
             body: {
-                error: "EMT-02",
+                error: "EMT-03",
             },
         };
     }

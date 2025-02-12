@@ -71,18 +71,6 @@ functions:
         - ${self:custom.vpc_subnet_id_2.${sls:stage}}
         - ${self:custom.vpc_subnet_id_3.${sls:stage}}
         - ${self:custom.vpc_subnet_id_4.${sls:stage}}
-  postConnectionHandler:
-    handler: app/postConnection/handler.postConnection
-    events:
-      - websocket:
-          route: postConnection
-    vpc:
-      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
-      subnetIds:
-        - ${self:custom.vpc_subnet_id_1.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_2.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_3.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_4.${sls:stage}}
   defaultHandler:
     handler: app/sendEmotes/handler.sendEmotes
     events:
@@ -106,13 +94,9 @@ resources:
         AttributeDefinitions:
           - AttributeName: connectionId
             AttributeType: S
-          - AttributeName: userId
-            AttributeType: S
         KeySchema:
           - AttributeName: connectionId
             KeyType: HASH
-          - AttributeName: userId
-            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
         TableName: user-connection-table-${sls:stage}
     EmoteReactionTable:

@@ -19,6 +19,7 @@ export const disconnect = async (
         !event.requestContext.connectionId ||
         event.requestContext.connectionId.trim() === ""
     ) {
+        console.error("EMT-91");
         return {
             statusCode: 400,
             body: {
@@ -42,6 +43,7 @@ export const disconnect = async (
             statusCode: 200,
         };
     } catch (error) {
+        console.error("EMT-92");
         return {
             statusCode: 500,
             body: {

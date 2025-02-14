@@ -42,11 +42,7 @@ functions:
           route: $connect
     vpc:
       securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
-      subnetIds:
-        - ${self:custom.vpc_subnet_id_1.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_2.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_3.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_4.${sls:stage}}
+      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
   disconnectionHandler:
     handler: app/ondisconnect/handler.disconnect
     events:
@@ -54,11 +50,7 @@ functions:
           route: $disconnect
     vpc:
       securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
-      subnetIds:
-        - ${self:custom.vpc_subnet_id_1.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_2.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_3.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_4.${sls:stage}}
+      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
   fetchEmotesHandler:
     handler: app/fetchEmotes/handler.fetchEmotes
     events:
@@ -66,11 +58,7 @@ functions:
           route: fetchEmotes
     vpc:
       securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
-      subnetIds:
-        - ${self:custom.vpc_subnet_id_1.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_2.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_3.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_4.${sls:stage}}
+      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
   defaultHandler:
     handler: app/sendEmotes/handler.sendEmotes
     events:
@@ -78,11 +66,7 @@ functions:
           route: $default
     vpc:
       securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
-      subnetIds:
-        - ${self:custom.vpc_subnet_id_1.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_2.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_3.${sls:stage}}
-        - ${self:custom.vpc_subnet_id_4.${sls:stage}}
+      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
 
 resources:
   Conditions:
@@ -138,22 +122,10 @@ custom:
     offline: ${env:VPC_SECURITY_GROUP_ID}
     dev: ${env:VPC_SECURITY_GROUP_ID}
     prod: ${env:VPC_SECURITY_GROUP_ID}
-  vpc_subnet_id_1:
-    offline: ${env:VPC_SUBNET_ID_1}
-    dev: ${env:VPC_SUBNET_ID_1}
-    prod: ${env:VPC_SUBNET_ID_1}
-  vpc_subnet_id_2:
-    offline: ${env:VPC_SUBNET_ID_2}
-    dev: ${env:VPC_SUBNET_ID_2}
-    prod: ${env:VPC_SUBNET_ID_2}
-  vpc_subnet_id_3:
-    offline: ${env:VPC_SUBNET_ID_3}
-    dev: ${env:VPC_SUBNET_ID_3}
-    prod: ${env:VPC_SUBNET_ID_3}
-  vpc_subnet_id_4:
-    offline: ${env:VPC_SUBNET_ID_4}
-    dev: ${env:VPC_SUBNET_ID_4}
-    prod: ${env:VPC_SUBNET_ID_4}
+  vpc_subnet_id:
+    offline: ${env:VPC_SUBNET_ID}
+    dev: ${env:VPC_SUBNET_ID}
+    prod: ${env:VPC_SUBNET_ID}
   db_host:
     offline: ${env:DB_HOST}
     dev: ${env:DB_HOST}

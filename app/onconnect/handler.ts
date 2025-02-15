@@ -40,7 +40,7 @@ export const connect = async (
                 TableName: envConfig.USER_CONNECTION_TABLE,
                 Item: {
                     connectionId,
-                    timestamp: dayjs().toString(),
+                    timestamp: dayjs().format("YYYY-MM-DD HH:mm:ss"),
                 },
             }),
         );

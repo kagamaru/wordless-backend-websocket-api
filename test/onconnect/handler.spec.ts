@@ -60,21 +60,6 @@ describe("異常系", () => {
         });
     });
 
-    test("リクエストのconnectionIdが空の時、ステータスコード400とEMT-01を返す", async () => {
-        testSetUp(true);
-
-        const response = await connect({
-            requestContext: {
-                connectionId: "",
-            },
-        });
-
-        expect(response.statusCode).toBe(400);
-        expect(response.body).toEqual({
-            error: "EMT-01",
-        });
-    });
-
     test("リクエストのconnectionIdが空文字の時、ステータスコード400とEMT-01を返す", async () => {
         testSetUp(true);
 

@@ -12,27 +12,19 @@ const mysqlClient = getRDSDBClient();
 dayjs.locale("ja");
 
 type ConnectRequest = {
-    body?: {
-        userId: string;
-        numberOfCompletedAcquisitionsCompleted: number;
-    };
+    body?: string;
+};
+
+type ConnectRequestBody = {
+    action: "fetchEmotes";
+    userId: string;
+    numberOfCompletedAcquisitionsCompleted: number;
 };
 
 export const fetchEmotes = async (
     event: ConnectRequest,
 ): Promise<APIResponse<{ emotes: Emote[]; connectionId: string }>> => {
-    // NOTE: wscatはConnect時のリクエスト渡しをサポートしていないので、offlineでのテスト時はコメントを外す
-    // const event = {
-    //     body: {
-    //         userId: "@fuga_fuga",
-    //         numberOfCompletedAcquisitionsCompleted: 10,
-    //     },
-    // };
-    if (
-        !event.body?.userId ||
-        !event.body?.numberOfCompletedAcquisitionsCompleted ||
-        event.body.userId.trim() === ""
-    ) {
+    if (!event.body) {
         return {
             statusCode: 400,
             body: {
@@ -41,7 +33,23 @@ export const fetchEmotes = async (
         };
     }
 
-    const { userId, numberOfCompletedAcquisitionsCompleted } = event.body;
+    const connectRequestBody: ConnectRequestBody = JSON.parse(event.body);
+
+    if (
+        !connectRequestBody.userId ||
+        !connectRequestBody.numberOfCompletedAcquisitionsCompleted ||
+        connectRequestBody.userId.trim() === ""
+    ) {
+        return {
+            statusCode: 400,
+            body: {
+                error: "EMT-12",
+            },
+        };
+    }
+
+    const { userId, numberOfCompletedAcquisitionsCompleted } =
+        connectRequestBody;
 
     let userConnectionResponse: Record<
         "connectionId" | "userId" | "timestamp",
@@ -62,7 +70,7 @@ export const fetchEmotes = async (
             return {
                 statusCode: 400,
                 body: {
-                    error: "EMT-12",
+                    error: "EMT-13",
                 },
             };
         }
@@ -70,7 +78,7 @@ export const fetchEmotes = async (
         return {
             statusCode: 500,
             body: {
-                error: "EMT-13",
+                error: "EMT-14",
             },
         };
     }
@@ -85,7 +93,7 @@ export const fetchEmotes = async (
         return {
             statusCode: 500,
             body: {
-                error: "EMT-14",
+                error: "EMT-15",
             },
         };
     }
@@ -165,14 +173,14 @@ export const fetchEmotes = async (
         return {
             statusCode: 500,
             body: {
-                error: "EMT-15",
+                error: "EMT-16",
             },
         };
     } else if (response.includes("EmoteReactionTableConnectionError")) {
         return {
             statusCode: 500,
             body: {
-                error: "EMT-16",
+                error: "EMT-17",
             },
         };
     }

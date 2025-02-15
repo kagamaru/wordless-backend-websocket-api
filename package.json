@@ -7,7 +7,7 @@
         "dev development env": "serverless deploy --stage dev --region us-west-2",
         "dynamodb install": "serverless dynamodb install",
         "dynamodb start": "serverless dynamodb start --stage offline",
-        "test": "jest"
+        "test": "jest --silent"
     },
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.585.0",

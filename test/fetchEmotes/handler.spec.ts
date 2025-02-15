@@ -197,10 +197,7 @@ describe("接続時", () => {
 
         // Act
         const response = await fetchEmotes({
-            body: {
-                userId: "@a",
-                numberOfCompletedAcquisitionsCompleted: 10,
-            },
+            body: `{ "userId": "@a", "numberOfCompletedAcquisitionsCompleted": 10}`,
         });
 
         // Assert
@@ -266,10 +263,7 @@ describe("接続時", () => {
         });
 
         await fetchEmotes({
-            body: {
-                userId: "@a",
-                numberOfCompletedAcquisitionsCompleted: 10,
-            },
+            body: `{ "userId": "@a", "numberOfCompletedAcquisitionsCompleted": 10}`,
         });
 
         expect(getRDSDBClientQueryMock).toHaveBeenCalledWith(
@@ -297,7 +291,7 @@ describe("異常系", () => {
         });
     });
 
-    test("リクエストのuserIdが空の時、ステータスコード400とEMT-11を返す", async () => {
+    test("リクエストのuserIdが無い時、ステータスコード400とEMT-12を返す", async () => {
         testSetUp({
             isUserConnectionDBSetup: true,
             isUserDBSetup: true,
@@ -305,91 +299,7 @@ describe("異常系", () => {
         });
 
         const response = await fetchEmotes({
-            body: {
-                userId: undefined,
-                numberOfCompletedAcquisitionsCompleted: 10,
-            },
-        });
-
-        expect(response.statusCode).toBe(400);
-        expect(response.body).toEqual({
-            error: "EMT-11",
-        });
-    });
-
-    test("リクエストのuserIdが空文字の時、ステータスコード400とEMT-11を返す", async () => {
-        testSetUp({
-            isUserConnectionDBSetup: true,
-            isUserDBSetup: true,
-            isEmoteReactionDBSetup: true,
-        });
-
-        const response = await fetchEmotes({
-            body: {
-                userId: "",
-                numberOfCompletedAcquisitionsCompleted: 10,
-            },
-        });
-
-        expect(response.statusCode).toBe(400);
-        expect(response.body).toEqual({
-            error: "EMT-11",
-        });
-    });
-
-    test("リクエストのnumberOfCompletedAcquisitionsCompletedが0の時、ステータスコード400とEMT-11を返す", async () => {
-        testSetUp({
-            isUserConnectionDBSetup: true,
-            isUserDBSetup: true,
-            isEmoteReactionDBSetup: true,
-        });
-
-        const response = await fetchEmotes({
-            body: {
-                userId: "@a",
-                numberOfCompletedAcquisitionsCompleted: 0,
-            },
-        });
-
-        expect(response.statusCode).toBe(400);
-        expect(response.body).toEqual({
-            error: "EMT-11",
-        });
-    });
-
-    test("リクエストのnumberOfCompletedAcquisitionsCompletedが空の時、ステータスコード400とEMT-11を返す", async () => {
-        testSetUp({
-            isUserConnectionDBSetup: true,
-            isUserDBSetup: true,
-            isEmoteReactionDBSetup: true,
-        });
-
-        const response = await fetchEmotes({
-            body: {
-                userId: "@a",
-                numberOfCompletedAcquisitionsCompleted: undefined,
-            },
-        });
-
-        expect(response.statusCode).toBe(400);
-        expect(response.body).toEqual({
-            error: "EMT-11",
-        });
-    });
-
-    test("UserConnectionTableから空が返却された時、ステータスコード400とEMT-12を返す", async () => {
-        testSetUp({
-            isUserConnectionDBSetup: true,
-            isUserDBSetup: true,
-            isEmoteReactionDBSetup: true,
-            isUserConnectionDBReturnUndefined: true,
-        });
-
-        const response = await fetchEmotes({
-            body: {
-                userId: "@a",
-                numberOfCompletedAcquisitionsCompleted: 10,
-            },
+            body: `{ "numberOfCompletedAcquisitionsCompleted": 10}`,
         });
 
         expect(response.statusCode).toBe(400);
@@ -398,28 +308,7 @@ describe("異常系", () => {
         });
     });
 
-    test("UserConnectionTableと接続できないとき、ステータスコード500とEMT-13を返す", async () => {
-        testSetUp({
-            isUserConnectionDBSetup: false,
-            isUserDBSetup: true,
-            isEmoteReactionDBSetup: true,
-        });
-
-        const response = await fetchEmotes({
-            body: {
-                userId: "@a",
-                numberOfCompletedAcquisitionsCompleted: 10,
-            },
-        });
-
-        expect(response.statusCode).toBe(500);
-        expect(response.body).toEqual({
-            error: "EMT-13",
-        });
-    });
-
-    test("EmoteTableと接続できないとき、ステータスコード500とEMT-14を返す", async () => {
-        getRDSDBClientQueryMock = jest.fn().mockRejectedValue(new Error());
+    test("リクエストのuserIdが空文字の時、ステータスコード400とEMT-12を返す", async () => {
         testSetUp({
             isUserConnectionDBSetup: true,
             isUserDBSetup: true,
@@ -427,10 +316,76 @@ describe("異常系", () => {
         });
 
         const response = await fetchEmotes({
-            body: {
-                userId: "@a",
-                numberOfCompletedAcquisitionsCompleted: 10,
-            },
+            body: `{ "userId": "", "numberOfCompletedAcquisitionsCompleted": 10}`,
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-12",
+        });
+    });
+
+    test("リクエストのnumberOfCompletedAcquisitionsCompletedが0の時、ステータスコード400とEMT-12を返す", async () => {
+        testSetUp({
+            isUserConnectionDBSetup: true,
+            isUserDBSetup: true,
+            isEmoteReactionDBSetup: true,
+        });
+
+        const response = await fetchEmotes({
+            body: `{ "userId": "@a", "numberOfCompletedAcquisitionsCompleted": 0}`,
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-12",
+        });
+    });
+
+    test("リクエストのnumberOfCompletedAcquisitionsCompletedが無い時、ステータスコード400とEMT-12を返す", async () => {
+        testSetUp({
+            isUserConnectionDBSetup: true,
+            isUserDBSetup: true,
+            isEmoteReactionDBSetup: true,
+        });
+
+        const response = await fetchEmotes({
+            body: `{ "userId": "@a" }`,
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-12",
+        });
+    });
+
+    test("UserConnectionTableから空が返却された時、ステータスコード400とEMT-13を返す", async () => {
+        testSetUp({
+            isUserConnectionDBSetup: true,
+            isUserDBSetup: true,
+            isEmoteReactionDBSetup: true,
+            isUserConnectionDBReturnUndefined: true,
+        });
+
+        const response = await fetchEmotes({
+            body: `{ "userId": "@a", "numberOfCompletedAcquisitionsCompleted": 10}`,
+        });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-13",
+        });
+    });
+
+    test("UserConnectionTableと接続できないとき、ステータスコード500とEMT-14を返す", async () => {
+        testSetUp({
+            isUserConnectionDBSetup: false,
+            isUserDBSetup: true,
+            isEmoteReactionDBSetup: true,
+        });
+
+        const response = await fetchEmotes({
+            body: `{ "userId": "@a", "numberOfCompletedAcquisitionsCompleted": 10}`,
         });
 
         expect(response.statusCode).toBe(500);
@@ -439,18 +394,16 @@ describe("異常系", () => {
         });
     });
 
-    test("UserTableと接続できないとき、ステータスコード500とEMT-15を返す", async () => {
+    test("EmoteTableと接続できないとき、ステータスコード500とEMT-15を返す", async () => {
+        getRDSDBClientQueryMock = jest.fn().mockRejectedValue(new Error());
         testSetUp({
             isUserConnectionDBSetup: true,
-            isUserDBSetup: false,
+            isUserDBSetup: true,
             isEmoteReactionDBSetup: true,
         });
 
         const response = await fetchEmotes({
-            body: {
-                userId: "@a",
-                numberOfCompletedAcquisitionsCompleted: 10,
-            },
+            body: `{ "userId": "@a", "numberOfCompletedAcquisitionsCompleted": 10}`,
         });
 
         expect(response.statusCode).toBe(500);
@@ -459,7 +412,24 @@ describe("異常系", () => {
         });
     });
 
-    test("EmoteReactionTableと接続できないとき、ステータスコード500とEMT-16を返す", async () => {
+    test("UserTableと接続できないとき、ステータスコード500とEMT-16を返す", async () => {
+        testSetUp({
+            isUserConnectionDBSetup: true,
+            isUserDBSetup: false,
+            isEmoteReactionDBSetup: true,
+        });
+
+        const response = await fetchEmotes({
+            body: `{ "userId": "@a", "numberOfCompletedAcquisitionsCompleted": 10}`,
+        });
+
+        expect(response.statusCode).toBe(500);
+        expect(response.body).toEqual({
+            error: "EMT-16",
+        });
+    });
+
+    test("EmoteReactionTableと接続できないとき、ステータスコード500とEMT-17を返す", async () => {
         testSetUp({
             isUserConnectionDBSetup: true,
             isUserDBSetup: true,
@@ -467,15 +437,12 @@ describe("異常系", () => {
         });
 
         const response = await fetchEmotes({
-            body: {
-                userId: "@a",
-                numberOfCompletedAcquisitionsCompleted: 10,
-            },
+            body: `{ "userId": "@a", "numberOfCompletedAcquisitionsCompleted": 10}`,
         });
 
         expect(response.statusCode).toBe(500);
         expect(response.body).toEqual({
-            error: "EMT-16",
+            error: "EMT-17",
         });
     });
 });

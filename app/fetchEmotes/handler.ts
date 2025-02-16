@@ -15,7 +15,7 @@ type ConnectRequest = {
     requestContext: {
         connectionId: string;
     };
-    body?: string;
+    body: string;
 };
 
 type ConnectRequestBody = {

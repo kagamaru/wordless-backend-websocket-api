@@ -185,6 +185,13 @@ beforeEach(() => {
     getRDSDBClientQueryMock = jest.fn().mockResolvedValue(emoteTableItem);
 });
 
+type ConnectRequest = {
+    requestContext: {
+        connectionId: string;
+    };
+    body: string;
+};
+
 describe("接続時", () => {
     test("正常時、sequenceNumber, emoteId, userName, userId, emoteDatetime, emoteReactionId, emoteEmojis, userAvatarUrl, emoteReactionEmojisから成る配列を返す", async () => {
         // Arrange
@@ -279,6 +286,23 @@ describe("接続時", () => {
 });
 
 describe("異常系", () => {
+    test("リクエストのrequestContextがフィールドごと存在しない時、ステータスコード400とEMT-11を返す", async () => {
+        testSetUp({
+            isUserConnectionDBSetup: true,
+            isUserDBSetup: true,
+            isEmoteReactionDBSetup: true,
+        });
+
+        const response = await fetchEmotes({
+            body: `{ "action": "fetchEmotes", "userId": "@a", "numberOfCompletedAcquisitionsCompleted": 10 }`,
+        } as unknown as ConnectRequest);
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-11",
+        });
+    });
+
     test("リクエストのrequestContextが空の時、ステータスコード400とEMT-11を返す", async () => {
         testSetUp({
             isUserConnectionDBSetup: true,
@@ -314,6 +338,25 @@ describe("異常系", () => {
         expect(response.statusCode).toBe(400);
         expect(response.body).toEqual({
             error: "EMT-11",
+        });
+    });
+
+    test("リクエストのbodyがフィールドごと存在しない時、ステータスコード400とEMT-12を返す", async () => {
+        testSetUp({
+            isUserConnectionDBSetup: true,
+            isUserDBSetup: true,
+            isEmoteReactionDBSetup: true,
+        });
+
+        const response = await fetchEmotes({
+            requestContext: {
+                connectionId: "connectionId",
+            },
+        } as unknown as ConnectRequest);
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-12",
         });
     });
 

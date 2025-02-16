@@ -12,27 +12,26 @@ const mysqlClient = getRDSDBClient();
 dayjs.locale("ja");
 
 type ConnectRequest = {
-    body?: {
-        userId: string;
-        numberOfCompletedAcquisitionsCompleted: number;
+    requestContext: {
+        connectionId: string;
     };
+    body: string;
+};
+
+type ConnectRequestBody = {
+    action: "fetchEmotes";
+    userId: string;
+    numberOfCompletedAcquisitionsCompleted: number;
 };
 
 export const fetchEmotes = async (
     event: ConnectRequest,
 ): Promise<APIResponse<{ emotes: Emote[]; connectionId: string }>> => {
-    // NOTE: wscatはConnect時のリクエスト渡しをサポートしていないので、offlineでのテスト時はコメントを外す
-    // const event = {
-    //     body: {
-    //         userId: "@fuga_fuga",
-    //         numberOfCompletedAcquisitionsCompleted: 10,
-    //     },
-    // };
     if (
-        !event.body?.userId ||
-        !event.body?.numberOfCompletedAcquisitionsCompleted ||
-        event.body.userId.trim() === ""
+        !event.requestContext?.connectionId ||
+        event.requestContext.connectionId.trim() === ""
     ) {
+        console.error("EMT-11");
         return {
             statusCode: 400,
             body: {
@@ -41,36 +40,64 @@ export const fetchEmotes = async (
         };
     }
 
-    const { userId, numberOfCompletedAcquisitionsCompleted } = event.body;
+    if (!event.body) {
+        console.error("EMT-12");
+        return {
+            statusCode: 400,
+            body: {
+                error: "EMT-12",
+            },
+        };
+    }
 
-    let userConnectionResponse: Record<
-        "connectionId" | "userId" | "timestamp",
-        string
-    >;
+    const { connectionId } = event.requestContext;
+    const connectRequestBody: ConnectRequestBody = JSON.parse(event.body);
+    const { action, userId, numberOfCompletedAcquisitionsCompleted } =
+        connectRequestBody;
+
+    if (
+        !connectionId ||
+        !action ||
+        !userId ||
+        !numberOfCompletedAcquisitionsCompleted ||
+        userId.trim() === ""
+    ) {
+        console.error("EMT-13");
+        return {
+            statusCode: 400,
+            body: {
+                error: "EMT-13",
+            },
+        };
+    }
+
+    let userConnectionResponse: Record<"connectionId" | "timestamp", string>;
     try {
         userConnectionResponse = (
             await docClient.send(
                 new GetCommand({
                     TableName: envConfig.USER_CONNECTION_TABLE,
                     Key: {
-                        userId,
+                        connectionId,
                     },
                 }),
             )
         ).Item;
         if (!userConnectionResponse) {
+            console.error("EMT-14");
             return {
                 statusCode: 400,
                 body: {
-                    error: "EMT-12",
+                    error: "EMT-14",
                 },
             };
         }
     } catch (error) {
+        console.error("EMT-15");
         return {
             statusCode: 500,
             body: {
-                error: "EMT-13",
+                error: "EMT-15",
             },
         };
     }
@@ -82,10 +109,11 @@ export const fetchEmotes = async (
         );
         await mysqlClient.end();
     } catch (error) {
+        console.error("EMT-16");
         return {
             statusCode: 500,
             body: {
-                error: "EMT-14",
+                error: "EMT-16",
             },
         };
     }
@@ -162,17 +190,19 @@ export const fetchEmotes = async (
     );
 
     if (response.includes("UserTableConnectionError")) {
+        console.error("EMT-17");
         return {
             statusCode: 500,
             body: {
-                error: "EMT-15",
+                error: "EMT-17",
             },
         };
     } else if (response.includes("EmoteReactionTableConnectionError")) {
+        console.error("EMT-18");
         return {
             statusCode: 500,
             body: {
-                error: "EMT-16",
+                error: "EMT-18",
             },
         };
     }

@@ -19,6 +19,7 @@ export const connect = async (
     event: ConnectRequest,
 ): Promise<APIResponse<undefined>> => {
     if (
+        !event?.requestContext ||
         !event.requestContext?.connectionId ||
         event.requestContext.connectionId.trim() === ""
     ) {
@@ -40,7 +41,7 @@ export const connect = async (
                 TableName: envConfig.USER_CONNECTION_TABLE,
                 Item: {
                     connectionId,
-                    timestamp: dayjs().toString(),
+                    timestamp: dayjs().format("YYYY-MM-DD HH:mm:ss"),
                 },
             }),
         );

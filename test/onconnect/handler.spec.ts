@@ -47,6 +47,17 @@ describe("接続時", () => {
 });
 
 describe("異常系", () => {
+    test("リクエストのrequestContextがフィールドごと存在しない時、ステータスコード400とEMT-01を返す", async () => {
+        testSetUp(true);
+
+        const response = await connect(undefined);
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body).toEqual({
+            error: "EMT-01",
+        });
+    });
+
     test("リクエストのrequestContextが空の時、ステータスコード400とEMT-01を返す", async () => {
         testSetUp(true);
 

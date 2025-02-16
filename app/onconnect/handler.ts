@@ -19,6 +19,7 @@ export const connect = async (
     event: ConnectRequest,
 ): Promise<APIResponse<undefined>> => {
     if (
+        !event?.requestContext ||
         !event.requestContext?.connectionId ||
         event.requestContext.connectionId.trim() === ""
     ) {

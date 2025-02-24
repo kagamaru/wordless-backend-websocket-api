@@ -1,9 +1,9 @@
 # "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: wordless
 # "app" enables Serverless Framework Dashboard features and sharing them with other Services.
-app: wordless-backend-emote
+app: wordless-backend-websocket-api
 # "service" is the name of this project. This will also be added to your AWS resource names.
-service: wordless-backend-emote
+service: wordless-backend-websocket-api
 
 provider:
   name: aws
@@ -21,7 +21,7 @@ provider:
             - dynamodb:DeleteItem
           Resource:
             - Fn::GetAtt: [UserConnectionTable, Arn]
-            - Fn::GetAtt: [EmoteReactionTable, Arn]
+            - arn:aws:dynamodb:us-west-2:${aws:accountId}:table/emote-reaction-table-${sls:stage}
             - arn:aws:dynamodb:us-west-2:${aws:accountId}:table/users-table-${sls:stage}
   environment:
     USER_CONNECTION_TABLE: "user-connection-table-${sls:stage}"
@@ -32,7 +32,7 @@ provider:
     DB_USER: ${self:custom.db_user.${sls:stage}}
     DB_PASSWORD: ${self:custom.db_password.${sls:stage}}
     DB_NAME: ${self:custom.db_name.${sls:stage}}
-  websocketsApiName: wordless-backend-websocket-${sls:stage}
+  websocketsApiName: wordless-backend-websocket-api-${sls:stage}
 
 functions:
   connectionHandler:
@@ -85,6 +85,7 @@ resources:
         TableName: user-connection-table-${sls:stage}
     EmoteReactionTable:
       Type: AWS::DynamoDB::Table
+      Condition: IsOffline
       Properties:
         AttributeDefinitions:
           - AttributeName: emoteReactionId
@@ -105,13 +106,13 @@ resources:
           - AttributeName: userId
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
-        TableName: "users-table-${sls:stage}"
+        TableName: users-table-${sls:stage}
     WebSocketApi:
       Type: AWS::ApiGatewayV2::Api
       Properties:
         Name: wordless-backend-websocket-${sls:stage}
         ProtocolType: WEBSOCKET
-        RouteSelectionExpression: "$request.body.action"
+        RouteSelectionExpression: $request.body.action
 
 plugins:
   - serverless-dynamodb

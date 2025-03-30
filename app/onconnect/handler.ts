@@ -3,7 +3,8 @@ import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { envConfig } from "@/config";
 import { APIResponse } from "@/@types";
-import { getDynamoDBClient } from "@/utility";
+import { getDynamoDBClient, getSigningKeys } from "@/utility";
+import { jwtDecode } from "jwt-decode";
 
 const docClient = getDynamoDBClient();
 
@@ -13,6 +14,9 @@ type ConnectRequest = {
     requestContext: {
         connectionId: string;
     };
+    headers: {
+        Authorization: string;
+    };
 };
 
 export const connect = async (
@@ -21,16 +25,55 @@ export const connect = async (
     if (
         !event?.requestContext ||
         !event.requestContext?.connectionId ||
-        event.requestContext.connectionId.trim() === ""
+        event.requestContext.connectionId.trim() === "" ||
+        !event.headers?.Authorization
     ) {
-        console.error("EMT-01");
+        console.error("WSK-01");
         return {
             statusCode: 400,
             body: {
-                error: "EMT-01",
+                error: "WSK-01",
             },
         };
     }
+
+    const token = event.headers?.Authorization?.split("Bearer ")[1];
+    if (!token) {
+        console.error("WSK-02");
+        return {
+            statusCode: 401,
+            body: {
+                error: "WSK-02",
+            },
+        };
+    }
+
+    let keys: { [key: string]: any };
+    try {
+        keys = await getSigningKeys();
+    } catch {
+        console.error("WSK-03");
+        return {
+            statusCode: 500,
+            body: {
+                error: "WSK-03",
+            },
+        };
+    }
+
+    const decodedHeader = jwtDecode(token, { header: true });
+    const key = keys[decodedHeader.kid];
+
+    if (!key) {
+        console.error("WSK-04");
+        return {
+            statusCode: 401,
+            body: {
+                error: "WSK-04",
+            },
+        };
+    }
+
     const {
         requestContext: { connectionId },
     } = event;
@@ -42,15 +85,16 @@ export const connect = async (
                 Item: {
                     connectionId,
                     timestamp: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+                    sub: jwtDecode(token).sub,
                 },
             }),
         );
     } catch (error) {
-        console.error("EMT-02");
+        console.error("WSK-05");
         return {
             statusCode: 500,
             body: {
-                error: "EMT-02",
+                error: "WSK-05",
             },
         };
     }

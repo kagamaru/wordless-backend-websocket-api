@@ -32,6 +32,8 @@ provider:
     DB_USER: ${self:custom.db_user.${sls:stage}}
     DB_PASSWORD: ${self:custom.db_password.${sls:stage}}
     DB_NAME: ${self:custom.db_name.${sls:stage}}
+    COGNITO_USER_POOL_ID: ${self:custom.cognito_user_pool_id.${sls:stage}}
+    COGNITO_REGION: us-west-2
   websocketsApiName: wordless-backend-websocket-api-${sls:stage}
 
 functions:
@@ -40,6 +42,11 @@ functions:
     events:
       - websocket:
           route: $connect
+          authorizer:
+            name: CognitoWebSocketAuthorizer
+            type: REQUEST
+            identitySource:
+              - route.request.header.Authorization
     vpc:
       securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
       subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
@@ -48,14 +55,6 @@ functions:
     events:
       - websocket:
           route: $disconnect
-    vpc:
-      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
-      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
-  fetchEmotesHandler:
-    handler: app/fetchEmotes/handler.fetchEmotes
-    events:
-      - websocket:
-          route: fetchEmotes
     vpc:
       securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
       subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
@@ -143,6 +142,10 @@ custom:
     offline: ${env:DB_NAME}
     dev: ${env:DB_NAME}
     prod: ${env:DB_NAME}
+  cognito_user_pool_id:
+    offline: ${env:COGNITO_USER_POOL_ID}
+    dev: ${env:COGNITO_USER_POOL_ID}
+    prod: ${env:COGNITO_USER_POOL_ID}
   serverless-dynamodb:
     stages:
       - offline

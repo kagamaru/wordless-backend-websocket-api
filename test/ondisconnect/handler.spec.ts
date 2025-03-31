@@ -51,7 +51,7 @@ describe("切断時", () => {
     });
 
     describe("異常系", () => {
-        test("リクエストのrequestContextが空であれば、400エラーと EMT-91を返す", async () => {
+        test("リクエストのrequestContextが空であれば、400エラーと WSK-91を返す", async () => {
             mockDdbSetup();
 
             const response = await disconnect({
@@ -60,11 +60,11 @@ describe("切断時", () => {
 
             expect(response.statusCode).toBe(400);
             expect(response.body).toEqual({
-                error: "EMT-91",
+                error: "WSK-91",
             });
         });
 
-        test("connectionIdが空であれば、400エラーと EMT-91を返す", async () => {
+        test("connectionIdが空であれば、400エラーと WSK-91を返す", async () => {
             mockDdbSetup();
 
             const response = await disconnect({
@@ -73,11 +73,11 @@ describe("切断時", () => {
 
             expect(response.statusCode).toBe(400);
             expect(response.body).toEqual({
-                error: "EMT-91",
+                error: "WSK-91",
             });
         });
 
-        test("connectionIdが空文字であれば、400エラーと EMT-91を返す", async () => {
+        test("connectionIdが空文字であれば、400エラーと WSK-91を返す", async () => {
             mockDdbSetup();
 
             const response = await disconnect({
@@ -86,11 +86,11 @@ describe("切断時", () => {
 
             expect(response.statusCode).toBe(400);
             expect(response.body).toEqual({
-                error: "EMT-91",
+                error: "WSK-91",
             });
         });
 
-        test("UserConnectionTableと接続できなければ、500エラーとEMT-92を返す", async () => {
+        test("UserConnectionTableと接続できなければ、500エラーとWSK-92を返す", async () => {
             ddbMock
                 .on(DeleteCommand, {
                     TableName: userConnectionTableName,
@@ -106,7 +106,7 @@ describe("切断時", () => {
 
             expect(response.statusCode).toBe(500);
             expect(response.body).toEqual({
-                error: "EMT-92",
+                error: "WSK-92",
             });
         });
     });

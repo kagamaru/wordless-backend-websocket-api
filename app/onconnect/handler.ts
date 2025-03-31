@@ -61,15 +61,26 @@ export const connect = async (
         };
     }
 
-    const decodedHeader = jwtDecode(token, { header: true });
-    const key = keys[decodedHeader.kid];
-
-    if (!key) {
+    let decodedHeader: { alg: string; typ: string; kid: string };
+    try {
+        decodedHeader = await jwtDecode(token, { header: true });
+    } catch {
         console.error("WSK-04");
         return {
             statusCode: 401,
             body: {
                 error: "WSK-04",
+            },
+        };
+    }
+
+    const key = keys[decodedHeader.kid];
+    if (!key) {
+        console.error("WSK-05");
+        return {
+            statusCode: 401,
+            body: {
+                error: "WSK-05",
             },
         };
     }
@@ -90,11 +101,11 @@ export const connect = async (
             }),
         );
     } catch (error) {
-        console.error("WSK-05");
+        console.error("WSK-06");
         return {
             statusCode: 500,
             body: {
-                error: "WSK-05",
+                error: "WSK-06",
             },
         };
     }

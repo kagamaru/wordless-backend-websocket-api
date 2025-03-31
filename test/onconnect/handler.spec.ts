@@ -198,7 +198,28 @@ describe("異常系", () => {
         });
     });
 
-    test("デコードされたJWTヘッダーからkeyが取得できない時、ステータスコード401とWSK-04を返す", async () => {
+    test("JWTデコード処理でエラーが発生した時、ステータスコード401とWSK-04を返す", async () => {
+        (jwtDecode as jest.Mock).mockRejectedValueOnce(async () => {
+            throw new Error();
+        });
+        testSetUp(true);
+
+        const response = await connect({
+            requestContext: {
+                connectionId: "connectionId",
+            },
+            headers: {
+                Authorization: "Bearer mock.jwt.token",
+            },
+        });
+
+        expect(response.statusCode).toBe(401);
+        expect(response.body).toEqual({
+            error: "WSK-04",
+        });
+    });
+
+    test("デコードされたJWTヘッダーからkeyが取得できない時、ステータスコード401とWSK-05を返す", async () => {
         (jwtDecode as jest.Mock).mockImplementationOnce(async () => ({
             alg: "RS256",
             typ: "JWT",
@@ -217,11 +238,11 @@ describe("異常系", () => {
 
         expect(response.statusCode).toBe(401);
         expect(response.body).toEqual({
-            error: "WSK-04",
+            error: "WSK-05",
         });
     });
 
-    test("UserConnectionTableと接続できないとき、ステータスコード500とWSK-05を返す", async () => {
+    test("UserConnectionTableと接続できないとき、ステータスコード500とWSK-06を返す", async () => {
         testSetUp(false);
 
         const response = await connect({
@@ -235,7 +256,7 @@ describe("異常系", () => {
 
         expect(response.statusCode).toBe(500);
         expect(response.body).toEqual({
-            error: "WSK-05",
+            error: "WSK-06",
         });
     });
 });

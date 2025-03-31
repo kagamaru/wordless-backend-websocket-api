@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [ "main", "develop" ]
 
+env:
+  COGNITO_REGION: ${{vars.COGNITO_REGION}}
+  COGNITO_USER_POOL_ID: ${{vars.COGNITO_USER_POOL_ID}}
+
 jobs:
   test:
     runs-on: ubuntu-latest

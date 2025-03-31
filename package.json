@@ -12,6 +12,7 @@
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.585.0",
         "@aws-sdk/lib-dynamodb": "^3.585.0",
+        "jwt-decode": "^4.0.0",
         "serverless-http": "^3.2.0"
     },
     "devDependencies": {

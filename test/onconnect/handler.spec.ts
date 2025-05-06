@@ -13,6 +13,10 @@ jest.mock("@/config", () => ({
     envConfig: {
         USER_CONNECTION_TABLE: "user-connection-table-offline",
     },
+    cognitoConfig: {
+        COGNITO_USER_POOL_ID: "mock-cognito-user-pool-id",
+        COGNITO_REGION: "mock-cognito-region",
+    },
 }));
 
 const mockSigningKeys = {

@@ -1,88 +1,33 @@
-import { PutCommand } from "@aws-sdk/lib-dynamodb";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { envConfig } from "@/config";
-import { APIResponse } from "@/@types";
-import { getDynamoDBClient, getSigningKeys } from "@/utility";
+import { APIResponse, APIRequest } from "@/@types";
+import {
+    createErrorResponse,
+    getAuthorizationToken,
+    isInvalidRequest,
+    putToDynamoDB,
+    verifyToken,
+} from "@/utility";
 import { jwtDecode } from "jwt-decode";
-
-const docClient = getDynamoDBClient();
 
 dayjs.locale("ja");
 
-type ConnectRequest = {
-    requestContext: {
-        connectionId: string;
-    };
-    headers: {
-        Authorization: string;
-    };
-};
-
 export const connect = async (
-    event: ConnectRequest,
+    event: APIRequest<undefined>,
 ): Promise<APIResponse<undefined>> => {
-    if (
-        !event?.requestContext ||
-        !event.requestContext?.connectionId ||
-        event.requestContext.connectionId.trim() === "" ||
-        !event.headers?.Authorization
-    ) {
-        console.error("WSK-01");
-        return {
-            statusCode: 400,
-            body: {
-                error: "WSK-01",
-            },
-        };
+    if (isInvalidRequest(event)) {
+        return createErrorResponse(400, "WSK-01");
     }
 
-    const token = event.headers?.Authorization?.split("Bearer ")[1];
-    if (!token) {
-        console.error("WSK-02");
-        return {
-            statusCode: 401,
-            body: {
-                error: "WSK-02",
-            },
-        };
+    const getAuthorizationTokenResult = getAuthorizationToken(event);
+    if (typeof getAuthorizationTokenResult !== "string") {
+        return getAuthorizationTokenResult;
     }
 
-    let keys: { [key: string]: any };
-    try {
-        keys = await getSigningKeys();
-    } catch {
-        console.error("WSK-03");
-        return {
-            statusCode: 500,
-            body: {
-                error: "WSK-03",
-            },
-        };
-    }
-
-    let decodedHeader: { alg: string; typ: string; kid: string };
-    try {
-        decodedHeader = await jwtDecode(token, { header: true });
-    } catch {
-        console.error("WSK-04");
-        return {
-            statusCode: 401,
-            body: {
-                error: "WSK-04",
-            },
-        };
-    }
-
-    const key = keys[decodedHeader.kid];
-    if (!key) {
-        console.error("WSK-05");
-        return {
-            statusCode: 401,
-            body: {
-                error: "WSK-05",
-            },
-        };
+    const verifyTokenResult = await verifyToken(getAuthorizationTokenResult);
+    if (verifyTokenResult !== "OK") {
+        return verifyTokenResult;
     }
 
     const {
@@ -90,24 +35,17 @@ export const connect = async (
     } = event;
 
     try {
-        await docClient.send(
-            new PutCommand({
-                TableName: envConfig.USER_CONNECTION_TABLE,
-                Item: {
-                    connectionId,
-                    timestamp: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-                    sub: jwtDecode(token).sub,
-                },
-            }),
+        await putToDynamoDB(
+            envConfig.USER_CONNECTION_TABLE,
+            {
+                connectionId,
+                timestamp: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+                sub: jwtDecode(getAuthorizationTokenResult).sub,
+            },
+            "WSK-02",
         );
     } catch (error) {
-        console.error("WSK-06");
-        return {
-            statusCode: 500,
-            body: {
-                error: "WSK-06",
-            },
-        };
+        return JSON.parse(error.message);
     }
 
     return {

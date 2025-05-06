@@ -13,3 +13,8 @@ export const dbConfig = {
     DB_PASSWORD: process.env.DB_PASSWORD,
     DB_NAME: process.env.DB_NAME,
 };
+
+export const cognitoConfig = {
+    COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID,
+    COGNITO_REGION: process.env.COGNITO_REGION,
+};

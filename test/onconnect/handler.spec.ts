@@ -3,53 +3,13 @@ import { jwtDecode } from "jwt-decode";
 import { connect } from "@/app/onconnect/handler";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { getSigningKeys } from "@/utility";
+import { verifyErrorResponse, createConnectEvent } from "@/test/testUtils";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
-const userConnectionTableName = "user-connection-table-offline";
-
-jest.mock("@/config", () => ({
-    // HACK: 変数へのアクセスが不可のため、ハードコーディングする
-    envConfig: {
-        USER_CONNECTION_TABLE: "user-connection-table-offline",
-    },
-    cognitoConfig: {
-        COGNITO_USER_POOL_ID: "mock-cognito-user-pool-id",
-        COGNITO_REGION: "mock-cognito-region",
-    },
-}));
-
-const mockSigningKeys = {
-    "mock-kid-123": {
-        kty: "RSA",
-        alg: "RS256",
-        use: "sig",
-        n: "test-modulus-base64url",
-        e: "AQAB",
-    },
-    "mock-kid-456": {
-        kty: "RSA",
-        alg: "RS256",
-        use: "sig",
-        n: "another-test-modulus",
-        e: "AQAB",
-    },
-};
-jest.mock("@/utility", () => ({
-    ...jest.requireActual("@/utility"),
-    getSigningKeys: jest.fn(async () => mockSigningKeys),
-}));
-jest.mock("jwt-decode", () => ({
-    jwtDecode: jest.fn(() => ({
-        alg: "RS256",
-        typ: "JWT",
-        kid: "mock-kid-123",
-    })),
-}));
-
 const testSetUp = (isUserConnectionDBSetup: boolean): void => {
     const userConnectionDdbMock = ddbMock.on(PutCommand, {
-        TableName: userConnectionTableName,
+        TableName: "user-connection-table-offline",
     });
 
     if (isUserConnectionDBSetup) {
@@ -69,14 +29,7 @@ describe("接続時", () => {
         testSetUp(true);
 
         // Act
-        const response = await connect({
-            requestContext: {
-                connectionId: "connectionId",
-            },
-            headers: {
-                Authorization: "Bearer mock.jwt.token",
-            },
-        });
+        const response = await connect(createConnectEvent());
 
         // Assert
         expect(response.statusCode).toBe(200);
@@ -84,146 +37,87 @@ describe("接続時", () => {
 });
 
 describe("異常系", () => {
-    test("リクエストのrequestContextがフィールドごと存在しない時、ステータスコード400とWSK-01を返す", async () => {
-        testSetUp(true);
+    describe.each([
+        ["requestContext がフィールドごと存在しない", undefined],
+        [
+            "requestContext が空",
+            {
+                ...createConnectEvent(),
+                requestContext: undefined,
+            },
+        ],
+        [
+            "connectionIdが空文字",
+            createConnectEvent({
+                requestContext: {
+                    connectionId: "",
+                },
+            }),
+        ],
+        [
+            "headerが空",
+            {
+                ...createConnectEvent(),
+                headers: undefined,
+            },
+        ],
+        [
+            "Authorization が空",
+            createConnectEvent({
+                headers: {
+                    Authorization: "",
+                },
+            }),
+        ],
+    ])("不正なリクエスト：%s", (_, event) => {
+        beforeEach(() => {
+            testSetUp(true);
+        });
 
-        const response = await connect(undefined);
+        test("WSK-01を返す", async () => {
+            const response = await connect(event);
 
-        expect(response.statusCode).toBe(400);
-        expect(response.body).toEqual({
-            error: "WSK-01",
+            verifyErrorResponse(response, 400, "WSK-01");
         });
     });
 
-    test("リクエストのrequestContextが空の時、ステータスコード400とWSK-01を返す", async () => {
+    test("アクセストークンが不正の時、ステータスコード401とAUN-01を返す", async () => {
         testSetUp(true);
 
-        const response = await connect({
-            requestContext: undefined,
-            headers: {
-                Authorization: "Bearer mock.jwt.token",
-            },
-        });
+        const response = await connect(
+            createConnectEvent({
+                headers: {
+                    Authorization: "incorrect token",
+                },
+            }),
+        );
 
-        expect(response.statusCode).toBe(400);
-        expect(response.body).toEqual({
-            error: "WSK-01",
-        });
+        verifyErrorResponse(response, 401, "AUN-01");
     });
 
-    test("リクエストのconnectionIdが空文字の時、ステータスコード400とWSK-01を返す", async () => {
-        testSetUp(true);
-
-        const response = await connect({
-            requestContext: {
-                connectionId: "",
-            },
-            headers: {
-                Authorization: "Bearer mock.jwt.token",
-            },
-        });
-
-        expect(response.statusCode).toBe(400);
-        expect(response.body).toEqual({
-            error: "WSK-01",
-        });
-    });
-
-    test("リクエストのheaderが空の時、ステータスコード400とWSK-01を返す", async () => {
-        testSetUp(true);
-
-        const response = await connect({
-            requestContext: {
-                connectionId: "connectionId",
-            },
-            headers: undefined,
-        });
-
-        expect(response.statusCode).toBe(400);
-        expect(response.body).toEqual({
-            error: "WSK-01",
-        });
-    });
-
-    test("リクエストのAuthorizationが空の時、ステータスコード400とWSK-01を返す", async () => {
-        testSetUp(true);
-
-        const response = await connect({
-            requestContext: {
-                connectionId: "connectionId",
-            },
-            headers: {
-                Authorization: "",
-            },
-        });
-
-        expect(response.statusCode).toBe(400);
-        expect(response.body).toEqual({
-            error: "WSK-01",
-        });
-    });
-
-    test("アクセストークンが不正の時、ステータスコード401とWSK-02を返す", async () => {
-        testSetUp(true);
-
-        const response = await connect({
-            requestContext: {
-                connectionId: "connectionId",
-            },
-            headers: {
-                Authorization: "incorrect token",
-            },
-        });
-
-        expect(response.statusCode).toBe(401);
-        expect(response.body).toEqual({
-            error: "WSK-02",
-        });
-    });
-
-    test("キーが取得できない時、ステータスコード401とWSK-03を返す", async () => {
+    test("キーが取得できない時、ステータスコード500とAUN-02を返す", async () => {
         (getSigningKeys as jest.Mock).mockImplementationOnce(async () =>
             Promise.reject(),
         );
         testSetUp(true);
 
-        const response = await connect({
-            requestContext: {
-                connectionId: "connectionId",
-            },
-            headers: {
-                Authorization: "Bearer mock.jwt.token",
-            },
-        });
+        const response = await connect(createConnectEvent());
 
-        expect(response.statusCode).toBe(500);
-        expect(response.body).toEqual({
-            error: "WSK-03",
-        });
+        verifyErrorResponse(response, 500, "AUN-02");
     });
 
-    test("JWTデコード処理でエラーが発生した時、ステータスコード401とWSK-04を返す", async () => {
+    test("JWTデコード処理でエラーが発生した時、ステータスコード401とAUN-03を返す", async () => {
         (jwtDecode as jest.Mock).mockRejectedValueOnce(async () => {
             throw new Error();
         });
         testSetUp(true);
 
-        const response = await connect({
-            requestContext: {
-                connectionId: "connectionId",
-            },
-            headers: {
-                Authorization: "Bearer mock.jwt.token",
-            },
-        });
+        const response = await connect(createConnectEvent());
 
-        expect(response.statusCode).toBe(401);
-        expect(response.body).toEqual({
-            error: "WSK-04",
-        });
+        verifyErrorResponse(response, 401, "AUN-03");
     });
 
-    test("デコードされたJWTヘッダーからkeyが取得できない時、ステータスコード401とWSK-05を返す", async () => {
+    test("デコードされたJWTヘッダーからkeyが取得できない時、ステータスコード401とAUN-04を返す", async () => {
         (jwtDecode as jest.Mock).mockImplementationOnce(async () => ({
             alg: "RS256",
             typ: "JWT",
@@ -231,36 +125,16 @@ describe("異常系", () => {
         }));
         testSetUp(true);
 
-        const response = await connect({
-            requestContext: {
-                connectionId: "connectionId",
-            },
-            headers: {
-                Authorization: "Bearer mock.jwt.token",
-            },
-        });
+        const response = await connect(createConnectEvent());
 
-        expect(response.statusCode).toBe(401);
-        expect(response.body).toEqual({
-            error: "WSK-05",
-        });
+        verifyErrorResponse(response, 401, "AUN-04");
     });
 
-    test("UserConnectionTableと接続できないとき、ステータスコード500とWSK-06を返す", async () => {
+    test("UserConnectionTableと接続できないとき、ステータスコード500とWSK-02を返す", async () => {
         testSetUp(false);
 
-        const response = await connect({
-            requestContext: {
-                connectionId: "connectionId",
-            },
-            headers: {
-                Authorization: "Bearer mock.jwt.token",
-            },
-        });
+        const response = await connect(createConnectEvent());
 
-        expect(response.statusCode).toBe(500);
-        expect(response.body).toEqual({
-            error: "WSK-06",
-        });
+        verifyErrorResponse(response, 500, "WSK-02");
     });
 });

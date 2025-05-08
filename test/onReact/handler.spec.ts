@@ -4,56 +4,14 @@ import {
     GetCommand,
     PutCommand,
 } from "@aws-sdk/lib-dynamodb";
-import "aws-sdk-client-mock-jest";
-import { onReact } from "@/app/onReact/handler";
-import { connect } from "@/app/onconnect/handler";
-import { getSigningKeys } from "@/utility";
 import { jwtDecode } from "jwt-decode";
+import { onReact } from "@/app/onReact/handler";
+import { getSigningKeys } from "@/utility";
+import { createConnectEvent, verifyErrorResponse } from "@/test/testUtils";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
-const userConnectionTableName = "user-connection-table-offline";
 const emoteReactionTableName = "emote-reaction-table-offline";
-
-jest.mock("@/config", () => ({
-    // HACK: 変数へのアクセスが不可のため、ハードコーディングする
-    envConfig: {
-        USER_CONNECTION_TABLE: "user-connection-table-offline",
-        EMOTE_REACTION_TABLE: "emote-reaction-table-offline",
-    },
-    cognitoConfig: {
-        COGNITO_USER_POOL_ID: "mock-cognito-user-pool-id",
-        COGNITO_REGION: "mock-cognito-region",
-    },
-}));
-
-const mockSigningKeys = {
-    "mock-kid-123": {
-        kty: "RSA",
-        alg: "RS256",
-        use: "sig",
-        n: "test-modulus-base64url",
-        e: "AQAB",
-    },
-    "mock-kid-456": {
-        kty: "RSA",
-        alg: "RS256",
-        use: "sig",
-        n: "another-test-modulus",
-        e: "AQAB",
-    },
-};
-jest.mock("@/utility", () => ({
-    ...jest.requireActual("@/utility"),
-    getSigningKeys: jest.fn(async () => mockSigningKeys),
-}));
-jest.mock("jwt-decode", () => ({
-    jwtDecode: jest.fn(() => ({
-        alg: "RS256",
-        typ: "JWT",
-        kid: "mock-kid-123",
-    })),
-}));
 
 const getDDBMockForCommand = (command: "Get" | "Put", tableName: string) => {
     if (command === "Get") {
@@ -66,16 +24,20 @@ const getDDBMockForCommand = (command: "Get" | "Put", tableName: string) => {
     });
 };
 
-const testSetUp = (
-    isUserConnectionDBSetup: boolean,
-    isEmoteReactionDBGetSetup: boolean,
-    isEmoteReactionDBPutSetup: boolean,
-    isUserConnectionDBNotFoundSetup?: boolean,
-    isEmoteReactionDBNotFoundSetup?: boolean,
-): void => {
+type TestSetupOptions = {
+    userConnection: "ok" | "notFound" | "fail";
+    emoteReactionGet: "ok" | "notFound" | "fail";
+    emoteReactionPut: "ok" | "fail";
+};
+
+const testSetUp = ({
+    userConnection,
+    emoteReactionGet,
+    emoteReactionPut,
+}: TestSetupOptions) => {
     const userConnectionDdbMock = getDDBMockForCommand(
         "Get",
-        userConnectionTableName,
+        "user-connection-table-offline",
     );
     const emoteReactionDdbGetMock = getDDBMockForCommand(
         "Get",
@@ -86,12 +48,8 @@ const testSetUp = (
         emoteReactionTableName,
     );
 
-    if (isUserConnectionDBSetup) {
-        if (isUserConnectionDBNotFoundSetup) {
-            userConnectionDdbMock.resolves({
-                Item: undefined,
-            });
-        } else {
+    switch (userConnection) {
+        case "ok":
             userConnectionDdbMock.resolves({
                 Item: {
                     connectionId: "connectionId",
@@ -99,17 +57,19 @@ const testSetUp = (
                     sub: "mock-sub",
                 },
             });
-        }
-    } else {
-        userConnectionDdbMock.rejects(new Error());
-    }
-
-    if (isEmoteReactionDBGetSetup) {
-        if (isEmoteReactionDBNotFoundSetup) {
-            emoteReactionDdbGetMock.resolves({
+            break;
+        case "notFound":
+            userConnectionDdbMock.resolves({
                 Item: undefined,
             });
-        } else {
+            break;
+        case "fail":
+            userConnectionDdbMock.rejects(new Error());
+            break;
+    }
+
+    switch (emoteReactionGet) {
+        case "ok":
             emoteReactionDdbGetMock.resolves({
                 Item: {
                     emoteReactionId: "emoteReactionId",
@@ -122,16 +82,40 @@ const testSetUp = (
                     ],
                 },
             });
-        }
-    } else {
-        emoteReactionDdbGetMock.rejects(new Error());
+            break;
+        case "notFound":
+            emoteReactionDdbGetMock.resolves({
+                Item: undefined,
+            });
+            break;
+        case "fail":
+            emoteReactionDdbGetMock.rejects(new Error());
+            break;
     }
 
-    if (isEmoteReactionDBPutSetup) {
-        emoteReactionDdbPutMock.resolves({});
-    } else {
-        emoteReactionDdbPutMock.rejects(new Error());
+    switch (emoteReactionPut) {
+        case "ok":
+            emoteReactionDdbPutMock.resolves({});
+            break;
+        case "fail":
+            emoteReactionDdbPutMock.rejects(new Error());
+            break;
     }
+};
+
+const getOnReactEventBody = (
+    reactedUserId: "mock-reacted-user-id" | "mock-sub",
+    operation: "increment" | "decrement",
+) => {
+    return {
+        body: {
+            action: "onReact",
+            emoteReactionId: "emoteReactionId",
+            reactedEmojiId: ":emojiId:",
+            reactedUserId,
+            operation,
+        },
+    };
 };
 
 beforeEach(() => {
@@ -142,45 +126,39 @@ describe("リアクション時", () => {
     describe("正常系", () => {
         describe("increment時", () => {
             test("200を返す", async () => {
-                testSetUp(true, true, true);
-
-                const response = await onReact({
-                    requestContext: {
-                        connectionId: "connectionId",
-                    },
-                    headers: {
-                        Authorization: "Bearer mock.jwt.token",
-                    },
-                    body: {
-                        action: "onreact",
-                        emoteReactionId: "emoteReactionId",
-                        reactedEmojiId: ":emojiId:",
-                        reactedUserId: "mock-reacted-user-id",
-                        operation: "increment",
-                    },
+                testSetUp({
+                    userConnection: "ok",
+                    emoteReactionGet: "ok",
+                    emoteReactionPut: "ok",
                 });
+
+                const response = await onReact(
+                    createConnectEvent(
+                        getOnReactEventBody(
+                            "mock-reacted-user-id",
+                            "increment",
+                        ),
+                    ),
+                );
 
                 expect(response.statusCode).toBe(200);
             });
 
             test("EmoteReactionTableに対してPutのリクエスト(+1)が送付される", async () => {
-                testSetUp(true, true, true);
-
-                await onReact({
-                    requestContext: {
-                        connectionId: "connectionId",
-                    },
-                    headers: {
-                        Authorization: "Bearer mock.jwt.token",
-                    },
-                    body: {
-                        action: "onreact",
-                        emoteReactionId: "emoteReactionId",
-                        reactedEmojiId: ":emojiId:",
-                        reactedUserId: "mock-reacted-user-id",
-                        operation: "increment",
-                    },
+                testSetUp({
+                    userConnection: "ok",
+                    emoteReactionGet: "ok",
+                    emoteReactionPut: "ok",
                 });
+
+                await onReact(
+                    createConnectEvent(
+                        getOnReactEventBody(
+                            "mock-reacted-user-id",
+                            "increment",
+                        ),
+                    ),
+                );
 
                 expect(ddbMock).toHaveReceivedCommandWith(PutCommand, {
                     TableName: emoteReactionTableName,
@@ -203,45 +181,33 @@ describe("リアクション時", () => {
 
         describe("decrement時", () => {
             test("200を返す", async () => {
-                testSetUp(true, true, true);
-
-                const response = await onReact({
-                    requestContext: {
-                        connectionId: "connectionId",
-                    },
-                    headers: {
-                        Authorization: "Bearer mock.jwt.token",
-                    },
-                    body: {
-                        action: "onreact",
-                        emoteReactionId: "emoteReactionId",
-                        reactedEmojiId: ":emojiId:",
-                        reactedUserId: "mock-sub",
-                        operation: "decrement",
-                    },
+                testSetUp({
+                    userConnection: "ok",
+                    emoteReactionGet: "ok",
+                    emoteReactionPut: "ok",
                 });
+
+                const response = await onReact(
+                    createConnectEvent(
+                        getOnReactEventBody("mock-sub", "decrement"),
+                    ),
+                );
 
                 expect(response.statusCode).toBe(200);
             });
 
             test("EmoteReactionTableに対してPutのリクエスト(-1)が送付される", async () => {
-                testSetUp(true, true, true);
-
-                await onReact({
-                    requestContext: {
-                        connectionId: "connectionId",
-                    },
-                    headers: {
-                        Authorization: "Bearer mock.jwt.token",
-                    },
-                    body: {
-                        action: "onreact",
-                        emoteReactionId: "emoteReactionId",
-                        reactedEmojiId: ":emojiId:",
-                        reactedUserId: "mock-sub",
-                        operation: "decrement",
-                    },
+                testSetUp({
+                    userConnection: "ok",
+                    emoteReactionGet: "ok",
+                    emoteReactionPut: "ok",
                 });
+
+                await onReact(
+                    createConnectEvent(
+                        getOnReactEventBody("mock-sub", "decrement"),
+                    ),
+                );
 
                 expect(ddbMock).toHaveReceivedCommandWith(PutCommand, {
                     TableName: emoteReactionTableName,
@@ -261,350 +227,214 @@ describe("リアクション時", () => {
     });
 
     describe("異常系", () => {
-        test("リクエストのrequestContextがフィールドごと存在しない時、ステータスコード400とWSK-21を返す", async () => {
-            testSetUp(true, true, true);
+        describe.each([
+            ["requestContext がフィールドごと存在しない", undefined],
+            [
+                "requestContext が空",
+                {
+                    ...createConnectEvent(
+                        getOnReactEventBody(
+                            "mock-reacted-user-id",
+                            "increment",
+                        ),
+                    ),
+                    requestContext: undefined,
+                },
+            ],
+            [
+                "connectionIdが空文字",
+                createConnectEvent({
+                    requestContext: {
+                        connectionId: "",
+                    },
+                    ...getOnReactEventBody("mock-reacted-user-id", "increment"),
+                }),
+            ],
+            [
+                "headerが空",
+                {
+                    ...createConnectEvent(
+                        getOnReactEventBody(
+                            "mock-reacted-user-id",
+                            "increment",
+                        ),
+                    ),
+                    headers: undefined,
+                },
+            ],
+            [
+                "Authorization が空",
+                {
+                    ...createConnectEvent(
+                        getOnReactEventBody(
+                            "mock-reacted-user-id",
+                            "increment",
+                        ),
+                    ),
+                    headers: { Authorization: "" },
+                },
+            ],
+        ])("不正なリクエスト：%s", (_, event) => {
+            beforeEach(() => {
+                testSetUp({
+                    userConnection: "ok",
+                    emoteReactionGet: "ok",
+                    emoteReactionPut: "ok",
+                });
+            });
 
-            const response = await onReact(undefined);
+            test("WSK-21を返す", async () => {
+                const response = await onReact(event);
 
-            expect(response.statusCode).toBe(400);
-            expect(response.body).toEqual({
-                error: "WSK-21",
+                verifyErrorResponse(response, 400, "WSK-21");
             });
         });
 
-        test("リクエストのrequestContextが空の時、ステータスコード400とWSK-21を返す", async () => {
-            testSetUp(true, true, true);
-
-            const response = await onReact({
-                requestContext: undefined,
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
-            });
-
-            expect(response.statusCode).toBe(400);
-            expect(response.body).toEqual({
-                error: "WSK-21",
-            });
-        });
-
-        test("リクエストのconnectionIdが空文字の時、ステータスコード400とWSK-21を返す", async () => {
-            testSetUp(true, true, true);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
-            });
-
-            expect(response.statusCode).toBe(400);
-            expect(response.body).toEqual({
-                error: "WSK-21",
-            });
-        });
-
-        test("リクエストのheaderが空の時、ステータスコード400とWSK-21を返す", async () => {
-            testSetUp(true, true, true);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: undefined,
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
-            });
-            expect(response.statusCode).toBe(400);
-            expect(response.body).toEqual({
-                error: "WSK-21",
-            });
-        });
-
-        test("リクエストのAuthorizationが空の時、ステータスコード400とWSK-21を返す", async () => {
-            testSetUp(true, true, true);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
-            });
-
-            expect(response.statusCode).toBe(400);
-            expect(response.body).toEqual({
-                error: "WSK-21",
-            });
-        });
-
-        test("アクセストークンが不正の時、ステータスコード401とWSK-22を返す", async () => {
-            testSetUp(true, true, true);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "incorrect token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
-            });
-
-            expect(response.statusCode).toBe(401);
-            expect(response.body).toEqual({
-                error: "WSK-22",
-            });
-        });
-
-        test("キーが取得できない時、ステータスコード401とWSK-23を返す", async () => {
+        test("キーが取得できない時、ステータスコード401とAUN-02を返す", async () => {
             (getSigningKeys as jest.Mock).mockImplementationOnce(async () =>
                 Promise.reject(),
             );
-            testSetUp(true, true, true);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
+            testSetUp({
+                userConnection: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
             });
 
-            expect(response.statusCode).toBe(500);
-            expect(response.body).toEqual({
-                error: "WSK-23",
-            });
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 500, "AUN-02");
         });
 
-        test("JWTデコード処理でエラーが発生した時、ステータスコード401とWSK-24を返す", async () => {
+        test("JWTデコード処理でエラーが発生した時、ステータスコード401とAUN-03を返す", async () => {
             (jwtDecode as jest.Mock).mockRejectedValueOnce(async () => {
                 throw new Error();
             });
-            testSetUp(true, true, true);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
+            testSetUp({
+                userConnection: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
             });
 
-            expect(response.statusCode).toBe(401);
-            expect(response.body).toEqual({
-                error: "WSK-24",
-            });
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 401, "AUN-03");
         });
 
-        test("デコードされたJWTヘッダーからkeyが取得できない時、ステータスコード401とWSK-25を返す", async () => {
+        test("デコードされたJWTヘッダーからkeyが取得できない時、ステータスコード401とAUN-04を返す", async () => {
             (jwtDecode as jest.Mock).mockImplementationOnce(async () => ({
                 alg: "RS256",
                 typ: "JWT",
                 kid: "mock-kid-999",
             }));
-            testSetUp(true, true, true);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
+            testSetUp({
+                userConnection: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
             });
 
-            expect(response.statusCode).toBe(401);
-            expect(response.body).toEqual({
-                error: "WSK-25",
-            });
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 401, "AUN-04");
         });
 
-        test("UserConnectionTableからデータが取得できないとき、ステータスコード404とWSK-26を返す", async () => {
-            testSetUp(true, true, true, true);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
+        test("UserConnectionTableからデータが取得できないとき、ステータスコード404とWSK-22を返す", async () => {
+            testSetUp({
+                userConnection: "notFound",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
             });
 
-            expect(response.statusCode).toBe(404);
-            expect(response.body).toEqual({
-                error: "WSK-26",
-            });
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 404, "WSK-22");
         });
 
-        test("UserConnectionTableと接続できないとき、ステータスコード500とWSK-27を返す", async () => {
-            testSetUp(false, true, true, false);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
+        test("UserConnectionTableと接続できないとき、ステータスコード500とWSK-23を返す", async () => {
+            testSetUp({
+                userConnection: "fail",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
             });
 
-            expect(response.statusCode).toBe(500);
-            expect(response.body).toEqual({
-                error: "WSK-27",
-            });
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 500, "WSK-23");
         });
 
-        test("EmoteReactionTableからデータが取得できないとき、ステータスコード404とWSK-28を返す", async () => {
-            testSetUp(true, true, true, false, true);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
+        test("EmoteReactionTableからデータが取得できないとき、ステータスコード404とWSK-24を返す", async () => {
+            testSetUp({
+                userConnection: "ok",
+                emoteReactionGet: "notFound",
+                emoteReactionPut: "ok",
             });
 
-            expect(response.statusCode).toBe(404);
-            expect(response.body).toEqual({
-                error: "WSK-28",
-            });
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 404, "WSK-24");
         });
 
-        test("EmoteReactionTableと接続できないとき、ステータスコード500とWSK-29を返す", async () => {
-            testSetUp(true, false, true, false, false);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
+        test("EmoteReactionTableと接続できないとき、ステータスコード500とWSK-25を返す", async () => {
+            testSetUp({
+                userConnection: "ok",
+                emoteReactionGet: "fail",
+                emoteReactionPut: "ok",
             });
 
-            expect(response.statusCode).toBe(500);
-            expect(response.body).toEqual({
-                error: "WSK-29",
-            });
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 500, "WSK-25");
         });
 
-        test("既にリアクションしたことがある絵文字に対して「increment」を実行した時、ステータスコード400とWSK-30を返す", async () => {
-            testSetUp(true, true, true);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-sub",
-                    operation: "increment",
-                },
+        test("既にリアクションしたことがある絵文字に対して「increment」を実行した時、ステータスコード400とWSK-26を返す", async () => {
+            testSetUp({
+                userConnection: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
             });
 
-            expect(response.statusCode).toBe(400);
-            expect(response.body).toEqual({
-                error: "WSK-30",
-            });
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-sub", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 400, "WSK-26");
         });
 
-        test("リアクション件数が0件の絵文字に対して「decrement」を実行した時、ステータスコード400とWSK-31を返す", async () => {
-            testSetUp(true, true, true);
+        test("リアクション件数が0件の絵文字に対して「decrement」を実行した時、ステータスコード400とWSK-28を返す", async () => {
+            testSetUp({
+                userConnection: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
+            });
             getDDBMockForCommand("Get", emoteReactionTableName).resolves({
                 Item: {
                     emoteReactionId: "emoteReactionId",
@@ -618,76 +448,45 @@ describe("リアクション時", () => {
                 },
             });
 
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-sub",
-                    operation: "decrement",
-                },
-            });
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-sub", "decrement"),
+                ),
+            );
 
-            expect(response.statusCode).toBe(400);
-            expect(response.body).toEqual({
-                error: "WSK-31",
-            });
+            verifyErrorResponse(response, 400, "WSK-28");
         });
 
-        test("リアクションしたことがない絵文字に対して「decrement」を実行した時、ステータスコード400とWSK-32を返す", async () => {
-            testSetUp(true, true, true);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "decrement",
-                },
+        test("リアクションしたことがない絵文字に対して「decrement」を実行した時、ステータスコード400とWSK-29を返す", async () => {
+            testSetUp({
+                userConnection: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
             });
 
-            expect(response.statusCode).toBe(400);
-            expect(response.body).toEqual({
-                error: "WSK-32",
-            });
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "decrement"),
+                ),
+            );
+
+            verifyErrorResponse(response, 400, "WSK-29");
         });
 
-        test("EmoteReactionTableに対してPutのリクエストが失敗した時、ステータスコード500とWSK-33を返す", async () => {
-            testSetUp(true, true, false);
-
-            const response = await onReact({
-                requestContext: {
-                    connectionId: "connectionId",
-                },
-                headers: {
-                    Authorization: "Bearer mock.jwt.token",
-                },
-                body: {
-                    action: "onreact",
-                    emoteReactionId: "emoteReactionId",
-                    reactedEmojiId: ":emojiId:",
-                    reactedUserId: "mock-reacted-user-id",
-                    operation: "increment",
-                },
+        test("EmoteReactionTableに対してPutのリクエストが失敗した時、ステータスコード500とWSK-30を返す", async () => {
+            testSetUp({
+                userConnection: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "fail",
             });
 
-            expect(response.statusCode).toBe(500);
-            expect(response.body).toEqual({
-                error: "WSK-33",
-            });
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 500, "WSK-30");
         });
     });
 });

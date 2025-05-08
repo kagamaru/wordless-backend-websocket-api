@@ -34,6 +34,9 @@
         "typescript": "^5.7.2"
     },
     "jest": {
+        "setupFilesAfterEnv": [
+            "<rootDir>/jest.setup.ts"
+        ],
         "testEnvironment": "node",
         "coveragePathIgnorePatterns": [
             "/node_modules/"

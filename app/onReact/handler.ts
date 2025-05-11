@@ -9,6 +9,7 @@ import {
     verifyToken,
     verifyUserConnection,
 } from "@/utility";
+import { emojiIds } from "@/static/emojiIds";
 
 type ReactRequest = APIRequest<{
     action: "onReact";
@@ -30,6 +31,10 @@ export const onReact = async (
             "operation",
         ])
     ) {
+        return createErrorResponse(400, "WSK-21");
+    }
+
+    if (!emojiIds.includes(event.body.reactedEmojiId)) {
         return createErrorResponse(400, "WSK-21");
     }
 

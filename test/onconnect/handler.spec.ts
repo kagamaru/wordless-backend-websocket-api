@@ -2,8 +2,8 @@ import { mockClient } from "aws-sdk-client-mock";
 import { jwtDecode } from "jwt-decode";
 import { connect } from "@/app/onconnect/handler";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { getSigningKeys } from "@/utility";
 import { verifyErrorResponse, createConnectEvent } from "@/test/testUtils";
+import { getSigningKeys } from "@/utility";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
@@ -70,11 +70,9 @@ describe("異常系", () => {
             }),
         ],
     ])("不正なリクエスト：%s", (_, event) => {
-        beforeEach(() => {
-            testSetUp(true);
-        });
-
         test("WSK-01を返す", async () => {
+            testSetUp(true);
+
             const response = await connect(event);
 
             verifyErrorResponse(response, 400, "WSK-01");
@@ -107,7 +105,7 @@ describe("異常系", () => {
     });
 
     test("JWTデコード処理でエラーが発生した時、ステータスコード401とAUN-03を返す", async () => {
-        (jwtDecode as jest.Mock).mockRejectedValueOnce(async () => {
+        (jwtDecode as jest.Mock).mockImplementationOnce(() => {
             throw new Error();
         });
         testSetUp(true);
@@ -118,11 +116,20 @@ describe("異常系", () => {
     });
 
     test("デコードされたJWTヘッダーからkeyが取得できない時、ステータスコード401とAUN-04を返す", async () => {
-        (jwtDecode as jest.Mock).mockImplementationOnce(async () => ({
-            alg: "RS256",
-            typ: "JWT",
-            kid: "mock-kid-999",
-        }));
+        (jwtDecode as jest.Mock).mockImplementationOnce(
+            (_token: string, options: any) => {
+                if (options.header) {
+                    return {
+                        alg: "RS256",
+                        typ: "JWT",
+                        kid: "mock-kid-999",
+                    };
+                }
+                return {
+                    sub: "mock-sub",
+                };
+            },
+        );
         testSetUp(true);
 
         const response = await connect(createConnectEvent());

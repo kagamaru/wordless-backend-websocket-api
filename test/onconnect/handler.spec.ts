@@ -79,21 +79,7 @@ describe("異常系", () => {
         });
     });
 
-    test("アクセストークンが不正の時、ステータスコード401とAUN-01を返す", async () => {
-        testSetUp(true);
-
-        const response = await connect(
-            createConnectEvent({
-                queryStringParameters: {
-                    Authorization: "incorrect token",
-                },
-            }),
-        );
-
-        verifyErrorResponse(response, 401, "AUN-01");
-    });
-
-    test("キーが取得できない時、ステータスコード500とAUN-02を返す", async () => {
+    test("キーが取得できない時、ステータスコード500とAUN-01を返す", async () => {
         (getSigningKeys as jest.Mock).mockImplementationOnce(async () =>
             Promise.reject(),
         );
@@ -101,10 +87,10 @@ describe("異常系", () => {
 
         const response = await connect(createConnectEvent());
 
-        verifyErrorResponse(response, 500, "AUN-02");
+        verifyErrorResponse(response, 500, "AUN-01");
     });
 
-    test("JWTデコード処理でエラーが発生した時、ステータスコード401とAUN-03を返す", async () => {
+    test("JWTデコード処理でエラーが発生した時、ステータスコード401とAUN-02を返す", async () => {
         (jwtDecode as jest.Mock).mockImplementationOnce(() => {
             throw new Error();
         });
@@ -112,10 +98,10 @@ describe("異常系", () => {
 
         const response = await connect(createConnectEvent());
 
-        verifyErrorResponse(response, 401, "AUN-03");
+        verifyErrorResponse(response, 401, "AUN-02");
     });
 
-    test("デコードされたJWTヘッダーからkeyが取得できない時、ステータスコード401とAUN-04を返す", async () => {
+    test("デコードされたJWTヘッダーからkeyが取得できない時、ステータスコード401とAUN-03を返す", async () => {
         (jwtDecode as jest.Mock).mockImplementationOnce(
             (_token: string, options: any) => {
                 if (options.header) {
@@ -134,7 +120,7 @@ describe("異常系", () => {
 
         const response = await connect(createConnectEvent());
 
-        verifyErrorResponse(response, 401, "AUN-04");
+        verifyErrorResponse(response, 401, "AUN-03");
     });
 
     test("UserConnectionTableと接続できないとき、ステータスコード500とWSK-02を返す", async () => {

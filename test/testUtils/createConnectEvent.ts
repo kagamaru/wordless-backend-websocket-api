@@ -1,24 +1,16 @@
-type ConnectEvent = {
-    requestContext: {
-        connectionId: string;
-    };
-    headers: {
-        Authorization: string;
-    };
-    body?: any;
-};
+import { APIRequest } from "@/@types";
 
 export function createConnectEvent(
-    overrides: Partial<ConnectEvent> = {},
-): ConnectEvent {
+    overrides: Partial<APIRequest<any>> = {},
+): APIRequest<any> {
     return {
         requestContext: {
             connectionId: "connectionId",
             ...(overrides.requestContext || {}),
         },
-        headers: {
+        queryStringParameters: {
             Authorization: "Bearer mock.jwt.token",
-            ...(overrides.headers || {}),
+            ...(overrides.queryStringParameters || {}),
         },
         ...(overrides.body !== undefined ? { body: overrides.body } : {}),
     };

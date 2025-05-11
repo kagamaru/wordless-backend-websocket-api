@@ -252,7 +252,7 @@ describe("リアクション時", () => {
                 }),
             ],
             [
-                "headerが空",
+                "queryStringParametersが空",
                 {
                     ...createConnectEvent(
                         getOnReactEventBody(
@@ -260,7 +260,7 @@ describe("リアクション時", () => {
                             "increment",
                         ),
                     ),
-                    headers: undefined,
+                    queryStringParameters: undefined,
                 },
             ],
             [
@@ -272,7 +272,7 @@ describe("リアクション時", () => {
                             "increment",
                         ),
                     ),
-                    headers: { Authorization: "" },
+                    queryStringParameters: { Authorization: "" },
                 },
             ],
         ])("不正なリクエスト：%s", (_, event) => {

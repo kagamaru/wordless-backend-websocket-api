@@ -1,16 +1,12 @@
-interface Event {
-    requestContext?: { connectionId?: string };
-    headers?: { Authorization?: string };
-    body?: Record<string, unknown>;
-}
+import { APIRequest } from "@/@types";
 
 export function isInvalidRequest(
-    event: Event,
+    event: APIRequest<any>,
     requiredFields?: string[],
 ): boolean {
     return (
         !event?.requestContext?.connectionId?.trim() ||
-        !event.headers?.Authorization ||
+        !event.queryStringParameters?.Authorization ||
         (requiredFields && hasMissingBodyFields(event.body, requiredFields))
     );
 }

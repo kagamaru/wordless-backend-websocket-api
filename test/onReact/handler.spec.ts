@@ -275,15 +275,13 @@ describe("リアクション時", () => {
                 },
             ],
         ])("不正なリクエスト：%s", (_, event) => {
-            beforeEach(() => {
+            test("WSK-21を返す", async () => {
                 testSetUp({
                     userConnection: "ok",
                     emoteReactionGet: "ok",
                     emoteReactionPut: "ok",
                 });
-            });
 
-            test("WSK-21を返す", async () => {
                 const response = await onReact(event);
 
                 verifyErrorResponse(response, 400, "WSK-21");
@@ -310,7 +308,7 @@ describe("リアクション時", () => {
         });
 
         test("JWTデコード処理でエラーが発生した時、ステータスコード401とAUN-03を返す", async () => {
-            (jwtDecode as jest.Mock).mockRejectedValueOnce(async () => {
+            (jwtDecode as jest.Mock).mockImplementationOnce(() => {
                 throw new Error();
             });
             testSetUp({
@@ -329,7 +327,7 @@ describe("リアクション時", () => {
         });
 
         test("デコードされたJWTヘッダーからkeyが取得できない時、ステータスコード401とAUN-04を返す", async () => {
-            (jwtDecode as jest.Mock).mockImplementationOnce(async () => ({
+            (jwtDecode as jest.Mock).mockImplementationOnce(() => ({
                 alg: "RS256",
                 typ: "JWT",
                 kid: "mock-kid-999",
@@ -347,6 +345,31 @@ describe("リアクション時", () => {
             );
 
             verifyErrorResponse(response, 401, "AUN-04");
+        });
+
+        test("既に存在するUserConnectionTableのデータとsubが一致しないとき、ステータスコード401とAUN-05を返す", async () => {
+            (jwtDecode as jest.Mock)
+                .mockImplementationOnce(() => ({
+                    alg: "RS256",
+                    typ: "JWT",
+                    kid: "mock-kid-123",
+                }))
+                .mockImplementationOnce(() => ({
+                    sub: "mock-sub-2",
+                }));
+            testSetUp({
+                userConnection: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
+            });
+
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 401, "AUN-05");
         });
 
         test("UserConnectionTableからデータが取得できないとき、ステータスコード404とWSK-22を返す", async () => {

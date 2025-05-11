@@ -33,9 +33,17 @@ jest.mock("@/utility/getSigningKeys", () => ({
 }));
 
 jest.mock("jwt-decode", () => ({
-    jwtDecode: jest.fn(() => ({
-        alg: "RS256",
-        typ: "JWT",
-        kid: "mock-kid-123",
-    })),
+    jwtDecode: jest.fn((_token: string, options?: { header?: boolean }) => {
+        if (options?.header) {
+            return {
+                alg: "RS256",
+                typ: "JWT",
+                kid: "mock-kid-123",
+            };
+        } else {
+            return {
+                sub: "mock-sub",
+            };
+        }
+    }),
 }));

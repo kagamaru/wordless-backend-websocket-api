@@ -75,7 +75,7 @@ const testSetUp = ({
                     emoteReactionId: "emoteReactionId",
                     emoteReactionEmojis: [
                         {
-                            emojiId: ":emojiId:",
+                            emojiId: ":snake:",
                             numberOfReactions: 1,
                             reactedUserIds: ["mock-sub"],
                         },
@@ -106,12 +106,13 @@ const testSetUp = ({
 const getOnReactEventBody = (
     reactedUserId: "mock-reacted-user-id" | "mock-sub",
     operation: "increment" | "decrement",
+    reactedEmojiId: `:${string}:` = ":snake:",
 ) => {
     return {
         body: {
             action: "onReact",
             emoteReactionId: "emoteReactionId",
-            reactedEmojiId: ":emojiId:",
+            reactedEmojiId,
             reactedUserId,
             operation,
         },
@@ -166,7 +167,7 @@ describe("リアクション時", () => {
                         emoteReactionId: "emoteReactionId",
                         emoteReactionEmojis: [
                             {
-                                emojiId: ":emojiId:",
+                                emojiId: ":snake:",
                                 numberOfReactions: 2,
                                 reactedUserIds: [
                                     "mock-sub",
@@ -215,7 +216,7 @@ describe("リアクション時", () => {
                         emoteReactionId: "emoteReactionId",
                         emoteReactionEmojis: [
                             {
-                                emojiId: ":emojiId:",
+                                emojiId: ":snake:",
                                 numberOfReactions: 0,
                                 reactedUserIds: [],
                             },
@@ -286,6 +287,26 @@ describe("リアクション時", () => {
 
                 verifyErrorResponse(response, 400, "WSK-21");
             });
+        });
+
+        test("不正な絵文字IDが指定された時、ステータスコード400とWSK-21を返す", async () => {
+            testSetUp({
+                userConnection: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
+            });
+
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody(
+                        "mock-reacted-user-id",
+                        "increment",
+                        ":mock-invalid-emoji-id:",
+                    ),
+                ),
+            );
+
+            verifyErrorResponse(response, 400, "WSK-21");
         });
 
         test("キーが取得できない時、ステータスコード401とAUN-02を返す", async () => {
@@ -463,7 +484,7 @@ describe("リアクション時", () => {
                     emoteReactionId: "emoteReactionId",
                     emoteReactionEmojis: [
                         {
-                            emojiId: ":emojiId:",
+                            emojiId: ":snake:",
                             numberOfReactions: 0,
                             reactedUserIds: [],
                         },

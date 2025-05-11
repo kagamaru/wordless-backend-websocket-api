@@ -1,3 +1,4 @@
+import { FetchedJWKKeys, JWKKey } from "@/@types";
 import { cognitoConfig } from "@/config";
 
 const COGNITO_USER_POOL_ID = cognitoConfig.COGNITO_USER_POOL_ID;
@@ -11,16 +12,19 @@ if (!COGNITO_USER_POOL_ID || !COGNITO_REGION) {
 
 const JWKS_URL = `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}/.well-known/jwks.json`;
 
-let cachedKeys: { [key: string]: any } | null = null;
+let cachedKeys: { [key: string]: JWKKey } | undefined = undefined;
 
 export const getSigningKeys = async () => {
     if (!cachedKeys) {
         const response = await fetch(JWKS_URL);
-        const keys = await response.json();
-        cachedKeys = keys.reduce((acc: any, key: any) => {
-            acc[key.kid] = key;
-            return acc;
-        }, {});
+        const jwks = (await response.json()) as FetchedJWKKeys;
+        cachedKeys = jwks.keys.reduce(
+            (acc: { [key: string]: JWKKey }, key: JWKKey) => {
+                acc[key.kid] = key;
+                return acc;
+            },
+            {},
+        );
     }
     return cachedKeys;
 };

@@ -11,7 +11,7 @@ export async function verifyToken(token: string): Promise<
     | {
           statusCode: 401 | 500;
           body: {
-              error: "AUN-02" | "AUN-03" | "AUN-04";
+              error: "AUN-01" | "AUN-02" | "AUN-03";
           };
       }
 > {
@@ -19,11 +19,11 @@ export async function verifyToken(token: string): Promise<
     try {
         keys = await getSigningKeys();
     } catch {
-        console.error("AUN-02");
+        console.error("AUN-01");
         return {
             statusCode: 500,
             body: {
-                error: "AUN-02",
+                error: "AUN-01",
             },
         };
     }
@@ -34,22 +34,22 @@ export async function verifyToken(token: string): Promise<
         decodedHeader = jwtDecode(token, { header: true });
         decodedPayload = jwtDecode(token);
     } catch {
-        console.error("AUN-03");
+        console.error("AUN-02");
         return {
             statusCode: 401,
             body: {
-                error: "AUN-03",
+                error: "AUN-02",
             },
         };
     }
 
     const key = keys[decodedHeader.kid];
     if (!key) {
-        console.error("AUN-04");
+        console.error("AUN-03");
         return {
             statusCode: 401,
             body: {
-                error: "AUN-04",
+                error: "AUN-03",
             },
         };
     }

@@ -55,16 +55,16 @@ describe("異常系", () => {
             }),
         ],
         [
-            "headerが空",
+            "queryStringParametersが空",
             {
                 ...createConnectEvent(),
-                headers: undefined,
+                queryStringParameters: undefined,
             },
         ],
         [
             "Authorization が空",
             createConnectEvent({
-                headers: {
+                queryStringParameters: {
                     Authorization: "",
                 },
             }),
@@ -84,7 +84,7 @@ describe("異常系", () => {
 
         const response = await connect(
             createConnectEvent({
-                headers: {
+                queryStringParameters: {
                     Authorization: "incorrect token",
                 },
             }),

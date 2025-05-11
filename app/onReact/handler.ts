@@ -38,12 +38,7 @@ export const onReact = async (
         return createErrorResponse(400, "WSK-21");
     }
 
-    const token = getAuthorizationToken(event);
-    if (typeof token !== "string") {
-        return token;
-    }
-
-    const result = await verifyToken(token);
+    const result = await verifyToken(getAuthorizationToken(event));
     if (result.statusCode !== 200) {
         return result;
     }

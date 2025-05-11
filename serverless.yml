@@ -42,9 +42,6 @@ functions:
     events:
       - websocket:
           route: $connect
-    vpc:
-      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
-      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
   disconnectionHandler:
     handler: app/ondisconnect/handler.disconnect
     events:
@@ -58,9 +55,6 @@ functions:
     events:
       - websocket:
           route: onReact
-    vpc:
-      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
-      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
   defaultHandler:
     handler: app/sendEmotes/handler.sendEmotes
     events:

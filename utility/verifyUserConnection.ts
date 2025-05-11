@@ -26,7 +26,7 @@ export async function verifyUserConnection(params: {
             JSON.stringify({
                 statusCode: 401,
                 body: {
-                    error: "AUN-05",
+                    error: "AUN-04",
                 },
             }),
         );

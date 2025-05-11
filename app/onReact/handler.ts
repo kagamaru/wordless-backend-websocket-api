@@ -7,6 +7,7 @@ import {
     isInvalidRequest,
     putToDynamoDB,
     verifyToken,
+    verifyUserConnection,
 } from "@/utility";
 
 type ReactRequest = APIRequest<{
@@ -38,7 +39,7 @@ export const onReact = async (
     }
 
     const result = await verifyToken(token);
-    if (result !== "OK") {
+    if (result.statusCode !== 200) {
         return result;
     }
 
@@ -49,14 +50,11 @@ export const onReact = async (
         event.body;
 
     try {
-        await getItemFromDynamoDB(
-            envConfig.USER_CONNECTION_TABLE,
-            {
-                connectionId,
-            },
-            "WSK-22",
-            "WSK-23",
-        );
+        await verifyUserConnection({
+            connectionId,
+            sub: result.body.sub,
+            errorCode: ["WSK-22", "WSK-23"],
+        });
     } catch (error) {
         return JSON.parse(error.message);
     }

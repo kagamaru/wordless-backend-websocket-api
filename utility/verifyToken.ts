@@ -1,14 +1,19 @@
-import { jwtDecode } from "jwt-decode";
+import { jwtDecode, JwtPayload } from "jwt-decode";
 import { getSigningKeys } from "@/utility/getSigningKeys";
 
 export async function verifyToken(token: string): Promise<
+    | {
+          statusCode: 200;
+          body: {
+              sub: string;
+          };
+      }
     | {
           statusCode: 401 | 500;
           body: {
               error: "AUN-02" | "AUN-03" | "AUN-04";
           };
       }
-    | "OK"
 > {
     let keys: { [key: string]: any };
     try {
@@ -24,8 +29,10 @@ export async function verifyToken(token: string): Promise<
     }
 
     let decodedHeader: { alg: string; typ: string; kid: string };
+    let decodedPayload: JwtPayload;
     try {
-        decodedHeader = await jwtDecode(token, { header: true });
+        decodedHeader = jwtDecode(token, { header: true });
+        decodedPayload = jwtDecode(token);
     } catch {
         console.error("AUN-03");
         return {
@@ -47,5 +54,10 @@ export async function verifyToken(token: string): Promise<
         };
     }
 
-    return "OK";
+    return {
+        statusCode: 200,
+        body: {
+            sub: decodedPayload.sub,
+        },
+    };
 }

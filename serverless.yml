@@ -42,11 +42,6 @@ functions:
     events:
       - websocket:
           route: $connect
-          authorizer:
-            name: CognitoWebSocketAuthorizer
-            type: REQUEST
-            identitySource:
-              - route.request.header.Authorization
     vpc:
       securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
       subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
@@ -55,6 +50,14 @@ functions:
     events:
       - websocket:
           route: $disconnect
+    vpc:
+      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
+      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
+  reactionHandler:
+    handler: app/onReact/handler.onReact
+    events:
+      - websocket:
+          route: onReact
     vpc:
       securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
       subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}

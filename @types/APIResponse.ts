@@ -1,5 +1,5 @@
 export type APIResponse<T> = {
-    statusCode: 200 | 400 | 401 | 500;
+    statusCode: 200 | 400 | 401 | 404 | 500;
     body?:
         | T
         | {

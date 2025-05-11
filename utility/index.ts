@@ -7,3 +7,4 @@ export * from "@/utility/getSigningKeys";
 export * from "@/utility/isInvalidRequest";
 export * from "@/utility/putToDynamoDB";
 export * from "@/utility/verifyToken";
+export * from "@/utility/verifyUserConnection";

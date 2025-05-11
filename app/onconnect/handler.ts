@@ -26,7 +26,7 @@ export const connect = async (
     }
 
     const verifyTokenResult = await verifyToken(getAuthorizationTokenResult);
-    if (verifyTokenResult !== "OK") {
+    if (verifyTokenResult.statusCode !== 200) {
         return verifyTokenResult;
     }
 

@@ -1,7 +1,7 @@
 import { DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { envConfig } from "@/config";
 import { APIResponse } from "@/@types";
-import { getDynamoDBClient } from "@/utility";
+import { createErrorResponse, getDynamoDBClient } from "@/utility";
 
 const docClient = getDynamoDBClient();
 
@@ -19,13 +19,7 @@ export const disconnect = async (
         !event.requestContext.connectionId ||
         event.requestContext.connectionId.trim() === ""
     ) {
-        console.error("WSK-91");
-        return {
-            statusCode: 400,
-            body: {
-                error: "WSK-91",
-            },
-        };
+        return createErrorResponse(400, "WSK-91");
     }
     const { connectionId } = event.requestContext;
 
@@ -43,12 +37,6 @@ export const disconnect = async (
             statusCode: 200,
         };
     } catch (error) {
-        console.error("WSK-92");
-        return {
-            statusCode: 500,
-            body: {
-                error: "WSK-92",
-            },
-        };
+        return createErrorResponse(500, "WSK-92");
     }
 };

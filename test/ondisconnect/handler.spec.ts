@@ -1,19 +1,12 @@
 import { DeleteCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { mockClient } from "aws-sdk-client-mock";
-import "aws-sdk-client-mock-jest";
 import { disconnect } from "@/app/ondisconnect/handler";
+import { verifyErrorResponse } from "@/test/testUtils";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
 const userConnectionTableName = "user-connection-table-offline";
 const connectionId = "00000000-0000-0000-0000-000000000000";
-
-jest.mock("@/config", () => ({
-    // HACK: 変数へのアクセスが不可のため、ハードコーディングする
-    envConfig: {
-        USER_CONNECTION_TABLE: "user-connection-table-offline",
-    },
-}));
 
 const mockDdbSetup = () => {
     ddbMock
@@ -51,62 +44,51 @@ describe("切断時", () => {
     });
 
     describe("異常系", () => {
-        test("リクエストのrequestContextが空であれば、400エラーと WSK-91を返す", async () => {
-            mockDdbSetup();
-
-            const response = await disconnect({
-                requestContext: undefined,
+        describe.each([
+            [
+                "requestContext が空",
+                {
+                    requestContext: undefined,
+                },
+            ],
+            [
+                "connectionIdが空",
+                {
+                    requestContext: { connectionId: undefined },
+                },
+            ],
+            [
+                "connectionIdが空文字",
+                {
+                    requestContext: { connectionId: "" },
+                },
+            ],
+        ])("不正なリクエスト：%s", (_, event) => {
+            beforeEach(() => {
+                mockDdbSetup();
             });
 
-            expect(response.statusCode).toBe(400);
-            expect(response.body).toEqual({
-                error: "WSK-91",
-            });
-        });
+            test("400エラーとWSK-91を返す", async () => {
+                const response = await disconnect(event);
 
-        test("connectionIdが空であれば、400エラーと WSK-91を返す", async () => {
-            mockDdbSetup();
-
-            const response = await disconnect({
-                requestContext: { connectionId: undefined },
+                verifyErrorResponse(response, 400, "WSK-91");
             });
 
-            expect(response.statusCode).toBe(400);
-            expect(response.body).toEqual({
-                error: "WSK-91",
-            });
-        });
+            test("UserConnectionTableと接続できなければ、500エラーとWSK-92を返す", async () => {
+                ddbMock
+                    .on(DeleteCommand, {
+                        TableName: userConnectionTableName,
+                        Key: {
+                            connectionId,
+                        },
+                    })
+                    .rejects(new Error());
 
-        test("connectionIdが空文字であれば、400エラーと WSK-91を返す", async () => {
-            mockDdbSetup();
+                const response = await disconnect({
+                    requestContext: { connectionId },
+                });
 
-            const response = await disconnect({
-                requestContext: { connectionId: "" },
-            });
-
-            expect(response.statusCode).toBe(400);
-            expect(response.body).toEqual({
-                error: "WSK-91",
-            });
-        });
-
-        test("UserConnectionTableと接続できなければ、500エラーとWSK-92を返す", async () => {
-            ddbMock
-                .on(DeleteCommand, {
-                    TableName: userConnectionTableName,
-                    Key: {
-                        connectionId,
-                    },
-                })
-                .rejects(new Error());
-
-            const response = await disconnect({
-                requestContext: { connectionId },
-            });
-
-            expect(response.statusCode).toBe(500);
-            expect(response.body).toEqual({
-                error: "WSK-92",
+                verifyErrorResponse(response, 500, "WSK-92");
             });
         });
     });

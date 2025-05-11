@@ -4,6 +4,6 @@ export type FetchedEmoteReaction = Record<"emoteReactionId", string> &
         Array<{
             emojiId: `:${string}:`;
             numberOfReactions: number;
-            reactedUserIds: string[];
+            reactedUserIds: string[] | undefined;
         }>
     >;

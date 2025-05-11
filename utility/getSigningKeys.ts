@@ -1,7 +1,7 @@
 import { cognitoConfig } from "@/config";
 
-const COGNITO_USER_POOL_ID = cognitoConfig.COGNITO_USER_POOL_ID!;
-const COGNITO_REGION = cognitoConfig.COGNITO_REGION!;
+const COGNITO_USER_POOL_ID = cognitoConfig.COGNITO_USER_POOL_ID;
+const COGNITO_REGION = cognitoConfig.COGNITO_REGION;
 
 if (!COGNITO_USER_POOL_ID || !COGNITO_REGION) {
     throw new Error(

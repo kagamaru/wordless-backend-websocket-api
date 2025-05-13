@@ -1,9 +1,6 @@
-import { DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { envConfig } from "@/config";
 import { APIResponse } from "@/@types";
-import { createErrorResponse, getDynamoDBClient } from "@/utility";
-
-const docClient = getDynamoDBClient();
+import { createErrorResponse, deleteItemFromDynamoDB } from "@/utility";
 
 type DisConnectRequest = {
     requestContext: {
@@ -24,19 +21,18 @@ export const disconnect = async (
     const { connectionId } = event.requestContext;
 
     try {
-        await docClient.send(
-            new DeleteCommand({
-                TableName: envConfig.USER_CONNECTION_TABLE,
-                Key: {
-                    connectionId,
-                },
-            }),
+        await deleteItemFromDynamoDB(
+            envConfig.USER_CONNECTION_TABLE,
+            {
+                connectionId,
+            },
+            "WSK-92",
         );
-
-        return {
-            statusCode: 200,
-        };
     } catch (error) {
-        return createErrorResponse(500, "WSK-92");
+        return JSON.parse(error.message);
     }
+
+    return {
+        statusCode: 200,
+    };
 };

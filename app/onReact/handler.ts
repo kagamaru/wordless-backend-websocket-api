@@ -1,15 +1,23 @@
 import { envConfig } from "@/config";
-import { APIRequest, APIResponse, FetchedEmoteReaction } from "@/@types";
+import {
+    APIRequest,
+    APIResponse,
+    FetchedEmoteReaction,
+    ScannedUserConnection,
+} from "@/@types";
 import {
     createErrorResponse,
     getAuthorizationToken,
     getItemFromDynamoDB,
     isInvalidRequest,
     putToDynamoDB,
+    scanItemsFromDynamoDB,
     verifyToken,
     verifyUserConnection,
 } from "@/utility";
 import { emojiIds } from "@/static/emojiIds";
+import { broadcastToAllConnections } from "@/utility/broadcastToAllConnections";
+import { EmoteReaction } from "@/@types/EmoteReaction";
 
 type ReactRequest = APIRequest<{
     action: "onReact";
@@ -101,6 +109,31 @@ export const onReact = async (
                 emoteReactionEmojis: emoteReactionEmojis,
             },
             "WSK-30",
+        );
+    } catch (error) {
+        return JSON.parse(error.message);
+    }
+
+    let connections: Array<ScannedUserConnection>;
+    try {
+        connections = (await scanItemsFromDynamoDB(
+            envConfig.USER_CONNECTION_TABLE,
+            "WSK-31",
+            "WSK-32",
+        )) as Array<ScannedUserConnection>;
+    } catch (error) {
+        return JSON.parse(error.message);
+    }
+
+    try {
+        await broadcastToAllConnections<EmoteReaction>(
+            connections,
+            {
+                emoteReactionId,
+                emoteReactionEmojis,
+            },
+            "WSK-33",
+            "WSK-34",
         );
     } catch (error) {
         return JSON.parse(error.message);

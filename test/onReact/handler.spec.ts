@@ -1,56 +1,62 @@
-import { mockClient } from "aws-sdk-client-mock";
 import {
+    DeleteCommand,
     DynamoDBDocumentClient,
     GetCommand,
     PutCommand,
+    ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
+import {
+    ApiGatewayManagementApiClient,
+    PostToConnectionCommand,
+} from "@aws-sdk/client-apigatewaymanagementapi";
+import { mockClient } from "aws-sdk-client-mock";
 import { jwtDecode } from "jwt-decode";
 import { onReact } from "@/app/onReact/handler";
 import { getSigningKeys } from "@/utility";
 import { createConnectEvent, verifyErrorResponse } from "@/test/testUtils";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
+const apiMock = mockClient(ApiGatewayManagementApiClient);
 
+const userConnectionTableName = "user-connection-table-offline";
 const emoteReactionTableName = "emote-reaction-table-offline";
 
-const getDDBMockForCommand = (command: "Get" | "Put", tableName: string) => {
-    if (command === "Get") {
-        return ddbMock.on(GetCommand, {
-            TableName: tableName,
-        });
-    }
-    return ddbMock.on(PutCommand, {
-        TableName: tableName,
-    });
-};
-
 type TestSetupOptions = {
-    userConnection: "ok" | "notFound" | "fail";
+    userConnectionGet: "ok" | "notFound" | "fail";
+    userConnectionScan: "ok" | "notFound" | "fail";
+    userConnectionDelete: "ok" | "fail";
     emoteReactionGet: "ok" | "notFound" | "fail";
     emoteReactionPut: "ok" | "fail";
+    apiPostToConnection: "ok" | "fail";
 };
 
 const testSetUp = ({
-    userConnection,
+    userConnectionGet,
+    userConnectionScan,
+    userConnectionDelete,
     emoteReactionGet,
     emoteReactionPut,
+    apiPostToConnection,
 }: TestSetupOptions) => {
-    const userConnectionDdbMock = getDDBMockForCommand(
-        "Get",
-        "user-connection-table-offline",
-    );
-    const emoteReactionDdbGetMock = getDDBMockForCommand(
-        "Get",
-        emoteReactionTableName,
-    );
-    const emoteReactionDdbPutMock = getDDBMockForCommand(
-        "Put",
-        emoteReactionTableName,
-    );
+    const userConnectionDdbGetMock = ddbMock.on(GetCommand, {
+        TableName: userConnectionTableName,
+    });
+    const userConnectionScanDdbMock = ddbMock.on(ScanCommand, {
+        TableName: userConnectionTableName,
+    });
+    const userConnectionDeleteDdbMock = ddbMock.on(DeleteCommand, {
+        TableName: userConnectionTableName,
+    });
+    const emoteReactionDdbGetMock = ddbMock.on(GetCommand, {
+        TableName: emoteReactionTableName,
+    });
+    const emoteReactionDdbPutMock = ddbMock.on(PutCommand, {
+        TableName: emoteReactionTableName,
+    });
 
-    switch (userConnection) {
+    switch (userConnectionGet) {
         case "ok":
-            userConnectionDdbMock.resolves({
+            userConnectionDdbGetMock.resolves({
                 Item: {
                     connectionId: "connectionId",
                     timestamp: "2021-01-01 00:00:00",
@@ -59,12 +65,43 @@ const testSetUp = ({
             });
             break;
         case "notFound":
-            userConnectionDdbMock.resolves({
+            userConnectionDdbGetMock.resolves({
                 Item: undefined,
             });
             break;
         case "fail":
-            userConnectionDdbMock.rejects(new Error());
+            userConnectionDdbGetMock.rejects(new Error());
+            break;
+    }
+
+    switch (userConnectionScan) {
+        case "ok":
+            userConnectionScanDdbMock.resolves({
+                Items: [
+                    {
+                        connectionId: "connectionId",
+                        timestamp: "2021-01-01 00:00:00",
+                        sub: "mock-sub",
+                    },
+                ],
+            });
+            break;
+        case "notFound":
+            userConnectionScanDdbMock.resolves({
+                Items: [],
+            });
+            break;
+        case "fail":
+            userConnectionScanDdbMock.rejects(new Error());
+            break;
+    }
+
+    switch (userConnectionDelete) {
+        case "ok":
+            userConnectionDeleteDdbMock.resolves({});
+            break;
+        case "fail":
+            userConnectionDeleteDdbMock.rejects(new Error());
             break;
     }
 
@@ -101,6 +138,15 @@ const testSetUp = ({
             emoteReactionDdbPutMock.rejects(new Error());
             break;
     }
+
+    switch (apiPostToConnection) {
+        case "ok":
+            apiMock.on(PostToConnectionCommand).resolves({});
+            break;
+        case "fail":
+            apiMock.on(PostToConnectionCommand).rejects(new Error());
+            break;
+    }
 };
 
 const getOnReactEventBody = (
@@ -128,9 +174,12 @@ describe("リアクション時", () => {
         describe("increment時", () => {
             test("200を返す", async () => {
                 testSetUp({
-                    userConnection: "ok",
+                    userConnectionGet: "ok",
+                    userConnectionScan: "ok",
+                    userConnectionDelete: "ok",
                     emoteReactionGet: "ok",
                     emoteReactionPut: "ok",
+                    apiPostToConnection: "ok",
                 });
 
                 const response = await onReact(
@@ -147,9 +196,12 @@ describe("リアクション時", () => {
 
             test("EmoteReactionTableに対してPutのリクエスト(+1)が送付される", async () => {
                 testSetUp({
-                    userConnection: "ok",
+                    userConnectionGet: "ok",
+                    userConnectionScan: "ok",
+                    userConnectionDelete: "ok",
                     emoteReactionGet: "ok",
                     emoteReactionPut: "ok",
+                    apiPostToConnection: "ok",
                 });
 
                 await onReact(
@@ -183,9 +235,12 @@ describe("リアクション時", () => {
         describe("decrement時", () => {
             test("200を返す", async () => {
                 testSetUp({
-                    userConnection: "ok",
+                    userConnectionGet: "ok",
+                    userConnectionScan: "ok",
+                    userConnectionDelete: "ok",
                     emoteReactionGet: "ok",
                     emoteReactionPut: "ok",
+                    apiPostToConnection: "ok",
                 });
 
                 const response = await onReact(
@@ -199,9 +254,12 @@ describe("リアクション時", () => {
 
             test("EmoteReactionTableに対してPutのリクエスト(-1)が送付される", async () => {
                 testSetUp({
-                    userConnection: "ok",
+                    userConnectionGet: "ok",
+                    userConnectionScan: "ok",
+                    userConnectionDelete: "ok",
                     emoteReactionGet: "ok",
                     emoteReactionPut: "ok",
+                    apiPostToConnection: "ok",
                 });
 
                 await onReact(
@@ -278,9 +336,12 @@ describe("リアクション時", () => {
         ])("不正なリクエスト：%s", (_, event) => {
             test("WSK-21を返す", async () => {
                 testSetUp({
-                    userConnection: "ok",
+                    userConnectionGet: "ok",
+                    userConnectionScan: "ok",
+                    userConnectionDelete: "ok",
                     emoteReactionGet: "ok",
                     emoteReactionPut: "ok",
+                    apiPostToConnection: "ok",
                 });
 
                 const response = await onReact(event);
@@ -291,9 +352,12 @@ describe("リアクション時", () => {
 
         test("不正な絵文字IDが指定された時、ステータスコード400とWSK-21を返す", async () => {
             testSetUp({
-                userConnection: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "ok",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -314,9 +378,12 @@ describe("リアクション時", () => {
                 Promise.reject(),
             );
             testSetUp({
-                userConnection: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "ok",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -333,9 +400,12 @@ describe("リアクション時", () => {
                 throw new Error();
             });
             testSetUp({
-                userConnection: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "ok",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -354,9 +424,12 @@ describe("リアクション時", () => {
                 kid: "mock-kid-999",
             }));
             testSetUp({
-                userConnection: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "ok",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -379,9 +452,12 @@ describe("リアクション時", () => {
                     sub: "mock-sub-2",
                 }));
             testSetUp({
-                userConnection: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "ok",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -395,9 +471,12 @@ describe("リアクション時", () => {
 
         test("UserConnectionTableからデータが取得できないとき、ステータスコード404とWSK-22を返す", async () => {
             testSetUp({
-                userConnection: "notFound",
+                userConnectionGet: "notFound",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "ok",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -411,9 +490,12 @@ describe("リアクション時", () => {
 
         test("UserConnectionTableと接続できないとき、ステータスコード500とWSK-23を返す", async () => {
             testSetUp({
-                userConnection: "fail",
+                userConnectionGet: "fail",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "ok",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -427,9 +509,12 @@ describe("リアクション時", () => {
 
         test("EmoteReactionTableからデータが取得できないとき、ステータスコード404とWSK-24を返す", async () => {
             testSetUp({
-                userConnection: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "notFound",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -443,9 +528,12 @@ describe("リアクション時", () => {
 
         test("EmoteReactionTableと接続できないとき、ステータスコード500とWSK-25を返す", async () => {
             testSetUp({
-                userConnection: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "fail",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -459,9 +547,12 @@ describe("リアクション時", () => {
 
         test("既にリアクションしたことがある絵文字に対して「increment」を実行した時、ステータスコード400とWSK-26を返す", async () => {
             testSetUp({
-                userConnection: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "ok",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -475,22 +566,29 @@ describe("リアクション時", () => {
 
         test("リアクション件数が0件の絵文字に対して「decrement」を実行した時、ステータスコード400とWSK-28を返す", async () => {
             testSetUp({
-                userConnection: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "ok",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
-            getDDBMockForCommand("Get", emoteReactionTableName).resolves({
-                Item: {
-                    emoteReactionId: "emoteReactionId",
-                    emoteReactionEmojis: [
-                        {
-                            emojiId: ":snake:",
-                            numberOfReactions: 0,
-                            reactedUserIds: [],
-                        },
-                    ],
-                },
-            });
+            ddbMock
+                .on(GetCommand, {
+                    TableName: emoteReactionTableName,
+                })
+                .resolves({
+                    Item: {
+                        emoteReactionId: "emoteReactionId",
+                        emoteReactionEmojis: [
+                            {
+                                emojiId: ":snake:",
+                                numberOfReactions: 0,
+                                reactedUserIds: [],
+                            },
+                        ],
+                    },
+                });
 
             const response = await onReact(
                 createConnectEvent(
@@ -503,9 +601,12 @@ describe("リアクション時", () => {
 
         test("リアクションしたことがない絵文字に対して「decrement」を実行した時、ステータスコード400とWSK-29を返す", async () => {
             testSetUp({
-                userConnection: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "ok",
                 emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -519,9 +620,12 @@ describe("リアクション時", () => {
 
         test("EmoteReactionTableに対してPutのリクエストが失敗した時、ステータスコード500とWSK-30を返す", async () => {
             testSetUp({
-                userConnection: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
                 emoteReactionGet: "ok",
                 emoteReactionPut: "fail",
+                apiPostToConnection: "ok",
             });
 
             const response = await onReact(
@@ -531,6 +635,82 @@ describe("リアクション時", () => {
             );
 
             verifyErrorResponse(response, 500, "WSK-30");
+        });
+
+        test("UserConnectionTableからデータを全件取得して0件だった時、ステータスコード500とWSK-31を返す", async () => {
+            testSetUp({
+                userConnectionGet: "ok",
+                userConnectionScan: "notFound",
+                userConnectionDelete: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
+            });
+
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 404, "WSK-31");
+        });
+
+        test("UserConnectionTableに対して全件取得しようとして接続できない時、ステータスコード500とWSK-32を返す", async () => {
+            testSetUp({
+                userConnectionGet: "ok",
+                userConnectionScan: "fail",
+                userConnectionDelete: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
+            });
+
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 500, "WSK-32");
+        });
+
+        test("API Gatewayと接続できない時、ステータスコード500とWSK-33を返す", async () => {
+            testSetUp({
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "fail",
+            });
+
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            verifyErrorResponse(response, 500, "WSK-33");
+        });
+
+        test("UserConnectionTableからデータの削除に失敗した時、エラーにはしない", async () => {
+            testSetUp({
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "fail",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
+            });
+
+            const response = await onReact(
+                createConnectEvent(
+                    getOnReactEventBody("mock-reacted-user-id", "increment"),
+                ),
+            );
+
+            expect(response.statusCode).toBe(200);
         });
     });
 });

@@ -1,4 +1,5 @@
 export * from "@/utility/createErrorResponse";
+export * from "@/utility/deleteItemFromDynamoDB";
 export * from "@/utility/getAuthorizationToken";
 export * from "@/utility/getDynamoDBClient";
 export * from "@/utility/getItemFromDynamoDB";
@@ -6,5 +7,6 @@ export * from "@/utility/getRDSDBClient";
 export * from "@/utility/getSigningKeys";
 export * from "@/utility/isInvalidRequest";
 export * from "@/utility/putToDynamoDB";
+export * from "@/utility/scanItemsFromDynamoDB";
 export * from "@/utility/verifyToken";
 export * from "@/utility/verifyUserConnection";

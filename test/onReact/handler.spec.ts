@@ -79,9 +79,15 @@ const testSetUp = ({
             userConnectionScanDdbMock.resolves({
                 Items: [
                     {
-                        connectionId: "connectionId",
-                        timestamp: "2021-01-01 00:00:00",
-                        sub: "mock-sub",
+                        connectionId: {
+                            S: "connectionId",
+                        },
+                        timestamp: {
+                            S: "2021-01-01 00:00:00",
+                        },
+                        sub: {
+                            S: "mock-sub",
+                        },
                     },
                 ],
             });

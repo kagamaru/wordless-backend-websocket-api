@@ -36,30 +36,23 @@ export async function broadcastToAllConnections<T>(
                     );
                 } else {
                     console.error(postToConnectionErrorCode);
-                    throw new Error(
-                        JSON.stringify({
-                            statusCode: 500,
-                            body: {
-                                error: postToConnectionErrorCode,
-                            },
-                        }),
-                    );
+                    throw new Error(postToConnectionErrorCode);
                 }
             }
         }),
     );
 
+    // NOTE: コネクションの削除に失敗した時はエラーにしない
     for (const result of results) {
         if (
             result.status === "rejected" &&
-            JSON.parse(result.reason.message).body.error ===
-                postToConnectionErrorCode
+            result.reason.message === postToConnectionErrorCode
         ) {
             throw new Error(
                 JSON.stringify({
                     statusCode: 500,
                     body: {
-                        error: JSON.parse(result.reason.message).body.error,
+                        error: result.reason.message,
                     },
                 }),
             );

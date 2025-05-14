@@ -28,11 +28,10 @@ export const disconnect = async (
             },
             "WSK-92",
         );
+        return {
+            statusCode: 200,
+        };
     } catch (error) {
         return JSON.parse(error.message);
     }
-
-    return {
-        statusCode: 200,
-    };
 };

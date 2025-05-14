@@ -34,6 +34,7 @@ provider:
     DB_NAME: ${self:custom.db_name.${sls:stage}}
     COGNITO_USER_POOL_ID: ${self:custom.cognito_user_pool_id.${sls:stage}}
     COGNITO_REGION: us-west-2
+    WEBSOCKET_ENDPOINT: ${self:custom.websocket_endpoint.${sls:stage}}
   websocketsApiName: wordless-backend-websocket-api-${sls:stage}
 
 functions:
@@ -143,6 +144,9 @@ custom:
     offline: ${env:COGNITO_USER_POOL_ID}
     dev: ${env:COGNITO_USER_POOL_ID}
     prod: ${env:COGNITO_USER_POOL_ID}
+  websocket_endpoint:
+    dev: ${env:WEBSOCKET_ENDPOINT}
+    prod: ${env:WEBSOCKET_ENDPOINT}
   serverless-dynamodb:
     stages:
       - offline

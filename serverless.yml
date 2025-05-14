@@ -144,6 +144,9 @@ custom:
     offline: ${env:COGNITO_USER_POOL_ID}
     dev: ${env:COGNITO_USER_POOL_ID}
     prod: ${env:COGNITO_USER_POOL_ID}
+  websocket_endpoint:
+    dev: ${env:WEBSOCKET_ENDPOINT}
+    prod: ${env:WEBSOCKET_ENDPOINT}
   serverless-dynamodb:
     stages:
       - offline

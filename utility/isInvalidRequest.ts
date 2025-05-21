@@ -1,13 +1,13 @@
 import { APIRequest } from "@/@types";
 
 export function isInvalidRequest(
-    event: APIRequest<any>,
+    event: APIRequest,
     requiredFields?: string[],
 ): boolean {
     return (
         !event?.requestContext?.connectionId?.trim() ||
-        !event.queryStringParameters?.Authorization ||
-        (requiredFields && hasMissingBodyFields(event.body, requiredFields))
+        (requiredFields &&
+            hasMissingBodyFields(JSON.parse(event.body), requiredFields))
     );
 }
 

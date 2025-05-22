@@ -4,10 +4,10 @@ export function isInvalidRequest(
     event: APIRequest,
     requiredFields?: string[],
 ): boolean {
+    const body = event.body ? JSON.parse(event.body) : undefined;
     return (
         !event?.requestContext?.connectionId?.trim() ||
-        (requiredFields &&
-            hasMissingBodyFields(JSON.parse(event.body), requiredFields))
+        (requiredFields && hasMissingBodyFields(body, requiredFields))
     );
 }
 

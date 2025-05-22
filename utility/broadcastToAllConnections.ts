@@ -2,12 +2,12 @@ import {
     ApiGatewayManagementApiClient,
     PostToConnectionCommand,
 } from "@aws-sdk/client-apigatewaymanagementapi";
-import { envConfig, websocketConfig } from "@/config";
+import { envConfig, webSocketConfig } from "@/config";
 import { ErrorCode, ScannedUserConnection } from "@/@types";
 import { deleteItemFromDynamoDB } from "@/utility/deleteItemFromDynamoDB";
 
 const apiClient = new ApiGatewayManagementApiClient({
-    endpoint: websocketConfig.WEBSOCKET_ENDPOINT,
+    endpoint: webSocketConfig.WEBSOCKET_ENDPOINT,
 });
 
 export async function broadcastToAllConnections<T>(

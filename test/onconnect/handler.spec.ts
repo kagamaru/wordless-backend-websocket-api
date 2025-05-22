@@ -2,7 +2,7 @@ import { mockClient } from "aws-sdk-client-mock";
 import { jwtDecode } from "jwt-decode";
 import { connect } from "@/app/onconnect/handler";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { verifyErrorResponse, createConnectEvent } from "@/test/testUtils";
+import { verifyErrorResponse } from "@/test/testUtils";
 import { getSigningKeys } from "@/utility";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -23,13 +23,22 @@ beforeEach(() => {
     ddbMock.reset();
 });
 
+const connectRequest = {
+    requestContext: {
+        connectionId: "connectionId",
+    },
+    queryStringParameters: {
+        Authorization: "Bearer mock.jwt.token",
+    },
+};
+
 describe("接続時", () => {
     test("正常時、200を返す", async () => {
         // Arrange
         testSetUp(true);
 
         // Act
-        const response = await connect(createConnectEvent());
+        const response = await connect(connectRequest);
 
         // Assert
         expect(response.statusCode).toBe(200);
@@ -42,32 +51,34 @@ describe("異常系", () => {
         [
             "requestContext が空",
             {
-                ...createConnectEvent(),
+                ...connectRequest,
                 requestContext: undefined,
             },
         ],
         [
             "connectionIdが空文字",
-            createConnectEvent({
+            {
+                ...connectRequest,
                 requestContext: {
                     connectionId: "",
                 },
-            }),
+            },
         ],
         [
             "queryStringParametersが空",
             {
-                ...createConnectEvent(),
+                ...connectRequest,
                 queryStringParameters: undefined,
             },
         ],
         [
             "Authorization が空",
-            createConnectEvent({
+            {
+                ...connectRequest,
                 queryStringParameters: {
                     Authorization: "",
                 },
-            }),
+            },
         ],
     ])("不正なリクエスト：%s", (_, event) => {
         test("WSK-01を返す", async () => {
@@ -85,7 +96,7 @@ describe("異常系", () => {
         );
         testSetUp(true);
 
-        const response = await connect(createConnectEvent());
+        const response = await connect(connectRequest);
 
         verifyErrorResponse(response, 500, "AUN-01");
     });
@@ -96,7 +107,7 @@ describe("異常系", () => {
         });
         testSetUp(true);
 
-        const response = await connect(createConnectEvent());
+        const response = await connect(connectRequest);
 
         verifyErrorResponse(response, 401, "AUN-02");
     });
@@ -118,7 +129,7 @@ describe("異常系", () => {
         );
         testSetUp(true);
 
-        const response = await connect(createConnectEvent());
+        const response = await connect(connectRequest);
 
         verifyErrorResponse(response, 401, "AUN-03");
     });
@@ -126,7 +137,7 @@ describe("異常系", () => {
     test("UserConnectionTableと接続できないとき、ステータスコード500とWSK-02を返す", async () => {
         testSetUp(false);
 
-        const response = await connect(createConnectEvent());
+        const response = await connect(connectRequest);
 
         verifyErrorResponse(response, 500, "WSK-02");
     });

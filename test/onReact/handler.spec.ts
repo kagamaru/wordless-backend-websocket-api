@@ -13,7 +13,8 @@ import { mockClient } from "aws-sdk-client-mock";
 import { jwtDecode } from "jwt-decode";
 import { onReact } from "@/app/onReact/handler";
 import { getSigningKeys } from "@/utility";
-import { createConnectEvent, verifyErrorResponse } from "@/test/testUtils";
+import { verifyErrorResponse } from "@/test/testUtils";
+import { APIRequest } from "@/@types";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 const apiMock = mockClient(ApiGatewayManagementApiClient);
@@ -155,19 +156,37 @@ const testSetUp = ({
     }
 };
 
-const getOnReactEventBody = (
-    reactedUserId: "mock-reacted-user-id" | "mock-sub",
-    operation: "increment" | "decrement",
-    reactedEmojiId: `:${string}:` = ":snake:",
-) => {
+interface OnReactEventBodyParams {
+    connectionId?: string;
+    action?: "onReact";
+    emoteReactionId?: "emoteReactionId";
+    reactedUserId?: "mock-reacted-user-id" | "mock-sub";
+    operation?: "increment" | "decrement";
+    reactedEmojiId?: `:${string}:`;
+    authorization?: string;
+}
+
+const getOnReactEventBody = ({
+    connectionId = "mock-connection-id",
+    action = "onReact",
+    emoteReactionId = "emoteReactionId",
+    reactedUserId = "mock-reacted-user-id",
+    operation = "increment",
+    reactedEmojiId = ":snake:",
+    authorization = "mock-authorization",
+}: OnReactEventBodyParams): APIRequest => {
     return {
-        body: {
-            action: "onReact",
-            emoteReactionId: "emoteReactionId",
+        requestContext: {
+            connectionId,
+        },
+        body: JSON.stringify({
+            action,
+            emoteReactionId,
             reactedEmojiId,
             reactedUserId,
             operation,
-        },
+            Authorization: authorization,
+        }),
     };
 };
 
@@ -189,12 +208,10 @@ describe("リアクション時", () => {
                 });
 
                 const response = await onReact(
-                    createConnectEvent(
-                        getOnReactEventBody(
-                            "mock-reacted-user-id",
-                            "increment",
-                        ),
-                    ),
+                    getOnReactEventBody({
+                        reactedUserId: "mock-reacted-user-id",
+                        operation: "increment",
+                    }),
                 );
 
                 expect(response.statusCode).toBe(200);
@@ -211,12 +228,10 @@ describe("リアクション時", () => {
                 });
 
                 await onReact(
-                    createConnectEvent(
-                        getOnReactEventBody(
-                            "mock-reacted-user-id",
-                            "increment",
-                        ),
-                    ),
+                    getOnReactEventBody({
+                        reactedUserId: "mock-reacted-user-id",
+                        operation: "increment",
+                    }),
                 );
 
                 expect(ddbMock).toHaveReceivedCommandWith(PutCommand, {
@@ -237,107 +252,128 @@ describe("リアクション時", () => {
                 });
             });
         });
+    });
 
-        describe("decrement時", () => {
-            test("200を返す", async () => {
-                testSetUp({
-                    userConnectionGet: "ok",
-                    userConnectionScan: "ok",
-                    userConnectionDelete: "ok",
-                    emoteReactionGet: "ok",
-                    emoteReactionPut: "ok",
-                    apiPostToConnection: "ok",
-                });
-
-                const response = await onReact(
-                    createConnectEvent(
-                        getOnReactEventBody("mock-sub", "decrement"),
-                    ),
-                );
-
-                expect(response.statusCode).toBe(200);
+    describe("decrement時", () => {
+        test("200を返す", async () => {
+            testSetUp({
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
             });
 
-            test("EmoteReactionTableに対してPutのリクエスト(-1)が送付される", async () => {
-                testSetUp({
-                    userConnectionGet: "ok",
-                    userConnectionScan: "ok",
-                    userConnectionDelete: "ok",
-                    emoteReactionGet: "ok",
-                    emoteReactionPut: "ok",
-                    apiPostToConnection: "ok",
-                });
+            const response = await onReact(
+                getOnReactEventBody({
+                    reactedUserId: "mock-sub",
+                    operation: "decrement",
+                }),
+            );
 
-                await onReact(
-                    createConnectEvent(
-                        getOnReactEventBody("mock-sub", "decrement"),
-                    ),
-                );
+            expect(response.statusCode).toBe(200);
+        });
 
-                expect(ddbMock).toHaveReceivedCommandWith(PutCommand, {
-                    TableName: emoteReactionTableName,
-                    Item: {
-                        emoteReactionId: "emoteReactionId",
-                        emoteReactionEmojis: [
-                            {
-                                emojiId: ":snake:",
-                                numberOfReactions: 0,
-                                reactedUserIds: [],
-                            },
-                        ],
-                    },
-                });
+        test("EmoteReactionTableに対してPutのリクエスト(-1)が送付される", async () => {
+            testSetUp({
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
+            });
+
+            await onReact(
+                getOnReactEventBody({
+                    reactedUserId: "mock-sub",
+                    operation: "decrement",
+                }),
+            );
+
+            expect(ddbMock).toHaveReceivedCommandWith(PutCommand, {
+                TableName: emoteReactionTableName,
+                Item: {
+                    emoteReactionId: "emoteReactionId",
+                    emoteReactionEmojis: [
+                        {
+                            emojiId: ":snake:",
+                            numberOfReactions: 0,
+                            reactedUserIds: [],
+                        },
+                    ],
+                },
             });
         });
     });
 
     describe("異常系", () => {
         describe.each([
-            ["requestContext がフィールドごと存在しない", undefined],
+            [
+                "requestContext がフィールドごと存在しない",
+                {
+                    action: "onReact",
+                    emoteReactionId: "emoteReactionId",
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                    reactedEmojiId: ":snake:",
+                    authorization: "mock-authorization",
+                },
+            ],
             [
                 "requestContext が空",
                 {
-                    ...createConnectEvent(
-                        getOnReactEventBody(
-                            "mock-reacted-user-id",
-                            "increment",
-                        ),
-                    ),
+                    ...getOnReactEventBody({}),
                     requestContext: undefined,
                 },
             ],
             [
                 "connectionIdが空文字",
-                createConnectEvent({
-                    requestContext: {
-                        connectionId: "",
-                    },
-                    ...getOnReactEventBody("mock-reacted-user-id", "increment"),
+                getOnReactEventBody({
+                    connectionId: "",
                 }),
             ],
             [
-                "queryStringParametersが空",
+                "actionが空",
                 {
-                    ...createConnectEvent(
-                        getOnReactEventBody(
-                            "mock-reacted-user-id",
-                            "increment",
-                        ),
-                    ),
-                    queryStringParameters: undefined,
+                    ...getOnReactEventBody({}),
+                    body: JSON.stringify({ action: undefined }),
                 },
             ],
             [
-                "Authorization が空",
+                "emoteReactionIdが空",
                 {
-                    ...createConnectEvent(
-                        getOnReactEventBody(
-                            "mock-reacted-user-id",
-                            "increment",
-                        ),
-                    ),
-                    queryStringParameters: { Authorization: "" },
+                    ...getOnReactEventBody({}),
+                    body: JSON.stringify({ emoteReactionId: undefined }),
                 },
+            ],
+            [
+                "reactedUserIdが空",
+                {
+                    ...getOnReactEventBody({}),
+                    body: JSON.stringify({ reactedUserId: undefined }),
+                },
+            ],
+            [
+                "operationが空",
+                {
+                    ...getOnReactEventBody({}),
+                    body: JSON.stringify({ operation: undefined }),
+                },
+            ],
+            [
+                "reactedEmojiIdが空",
+                {
+                    ...getOnReactEventBody({}),
+                    body: JSON.stringify({ reactedEmojiId: undefined }),
+                },
+            ],
+            [
+                "Authorizationが空",
+                getOnReactEventBody({
+                    authorization: "",
+                }),
             ],
         ])("不正なリクエスト：%s", (_, event) => {
             test("WSK-21を返す", async () => {
@@ -350,7 +386,8 @@ describe("リアクション時", () => {
                     apiPostToConnection: "ok",
                 });
 
-                const response = await onReact(event);
+                // NOTE: テストのためasで強制的にキャストする
+                const response = await onReact(event as APIRequest);
 
                 verifyErrorResponse(response, 400, "WSK-21");
             });
@@ -367,13 +404,11 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody(
-                        "mock-reacted-user-id",
-                        "increment",
-                        ":mock-invalid-emoji-id:",
-                    ),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                    reactedEmojiId: ":mock-invalid-emoji-id:",
+                }),
             );
 
             verifyErrorResponse(response, 400, "WSK-21");
@@ -393,9 +428,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 500, "AUN-01");
@@ -415,9 +451,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 401, "AUN-02");
@@ -439,9 +476,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 401, "AUN-03");
@@ -467,9 +505,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 401, "AUN-04");
@@ -486,9 +525,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 404, "WSK-22");
@@ -505,9 +545,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 500, "WSK-23");
@@ -524,9 +565,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 404, "WSK-24");
@@ -543,9 +585,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 500, "WSK-25");
@@ -562,9 +605,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-sub", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-sub",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 400, "WSK-26");
@@ -597,9 +641,10 @@ describe("リアクション時", () => {
                 });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-sub", "decrement"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-sub",
+                    operation: "decrement",
+                }),
             );
 
             verifyErrorResponse(response, 400, "WSK-28");
@@ -616,9 +661,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "decrement"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "decrement",
+                }),
             );
 
             verifyErrorResponse(response, 400, "WSK-29");
@@ -635,9 +681,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 500, "WSK-30");
@@ -654,9 +701,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 404, "WSK-31");
@@ -673,9 +721,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 500, "WSK-32");
@@ -692,9 +741,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             verifyErrorResponse(response, 500, "WSK-33");
@@ -711,9 +761,10 @@ describe("リアクション時", () => {
             });
 
             const response = await onReact(
-                createConnectEvent(
-                    getOnReactEventBody("mock-reacted-user-id", "increment"),
-                ),
+                getOnReactEventBody({
+                    reactedUserId: "mock-reacted-user-id",
+                    operation: "increment",
+                }),
             );
 
             expect(response.statusCode).toBe(200);

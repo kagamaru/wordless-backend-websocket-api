@@ -18,3 +18,7 @@ export const cognitoConfig = {
     COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID,
     COGNITO_REGION: process.env.COGNITO_REGION,
 };
+
+export const webSocketConfig = {
+    WEBSOCKET_ENDPOINT: process.env.WEBSOCKET_ENDPOINT,
+};

@@ -1,9 +1,6 @@
-export type APIRequest<T> = {
+export type APIRequest = {
     requestContext: {
         connectionId: string;
     };
-    queryStringParameters: {
-        Authorization: string;
-    };
-    body?: T;
+    body?: string;
 };

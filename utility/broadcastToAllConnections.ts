@@ -2,12 +2,12 @@ import {
     ApiGatewayManagementApiClient,
     PostToConnectionCommand,
 } from "@aws-sdk/client-apigatewaymanagementapi";
-import { envConfig } from "@/config";
+import { envConfig, webSocketConfig } from "@/config";
 import { ErrorCode, ScannedUserConnection } from "@/@types";
 import { deleteItemFromDynamoDB } from "@/utility/deleteItemFromDynamoDB";
 
 const apiClient = new ApiGatewayManagementApiClient({
-    endpoint: process.env.WEBSOCKET_ENDPOINT,
+    endpoint: webSocketConfig.WEBSOCKET_ENDPOINT,
 });
 
 export async function broadcastToAllConnections<T>(
@@ -18,7 +18,7 @@ export async function broadcastToAllConnections<T>(
 ) {
     const results = await Promise.allSettled(
         connections.map(async (conn) => {
-            const connectionId = conn.connectionId.S;
+            const { connectionId } = conn;
 
             try {
                 await apiClient.send(

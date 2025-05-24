@@ -7,7 +7,6 @@ import {
 } from "@/@types";
 import {
     createErrorResponse,
-    getAuthorizationToken,
     getItemFromDynamoDB,
     isInvalidRequest,
     putToDynamoDB,
@@ -19,16 +18,17 @@ import { emojiIds } from "@/static/emojiIds";
 import { broadcastToAllConnections } from "@/utility/broadcastToAllConnections";
 import { EmoteReaction } from "@/@types/EmoteReaction";
 
-type ReactRequest = APIRequest<{
+type ReactRequestBody = {
     action: "onReact";
     emoteReactionId: string;
     reactedEmojiId: `:${string}:`;
     reactedUserId: string;
     operation: "increment" | "decrement";
-}>;
+    Authorization: string;
+};
 
 export const onReact = async (
-    event: ReactRequest,
+    event: APIRequest,
 ): Promise<APIResponse<undefined>> => {
     if (
         isInvalidRequest(event, [
@@ -37,16 +37,18 @@ export const onReact = async (
             "reactedEmojiId",
             "reactedUserId",
             "operation",
+            "Authorization",
         ])
     ) {
         return createErrorResponse(400, "WSK-21");
     }
 
-    if (!emojiIds.includes(event.body.reactedEmojiId)) {
+    const eventBody: ReactRequestBody = JSON.parse(event.body);
+    if (!emojiIds.includes(eventBody.reactedEmojiId)) {
         return createErrorResponse(400, "WSK-21");
     }
 
-    const result = await verifyToken(getAuthorizationToken(event));
+    const result = await verifyToken(eventBody.Authorization);
     if (result.statusCode !== 200) {
         return result;
     }
@@ -55,7 +57,7 @@ export const onReact = async (
         requestContext: { connectionId },
     } = event;
     const { emoteReactionId, operation, reactedEmojiId, reactedUserId } =
-        event.body;
+        eventBody;
 
     try {
         await verifyUserConnection({

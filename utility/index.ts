@@ -1,6 +1,5 @@
 export * from "@/utility/createErrorResponse";
 export * from "@/utility/deleteItemFromDynamoDB";
-export * from "@/utility/getAuthorizationToken";
 export * from "@/utility/getDynamoDBClient";
 export * from "@/utility/getItemFromDynamoDB";
 export * from "@/utility/getRDSDBClient";

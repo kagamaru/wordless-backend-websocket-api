@@ -102,6 +102,11 @@ export const onReact = async (
         return JSON.parse(error.message);
     }
 
+    const totalNumberOfReactions = emoteReactionEmojis.reduce(
+        (acc, emoji) => acc + (emoji.numberOfReactions || 0),
+        0,
+    );
+
     try {
         await putToDynamoDB(
             envConfig.EMOTE_REACTION_TABLE,
@@ -131,12 +136,14 @@ export const onReact = async (
             action: "onReact";
             emoteReactionId: string;
             emoteReactionEmojis: FetchedEmoteReaction["emoteReactionEmojis"];
+            totalNumberOfReactions: number;
         }>(
             connections,
             {
                 action: "onReact",
                 emoteReactionId,
                 emoteReactionEmojis,
+                totalNumberOfReactions,
             },
             "WSK-33",
             "WSK-34",

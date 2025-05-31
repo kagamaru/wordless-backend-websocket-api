@@ -16,7 +16,6 @@ import {
 } from "@/utility";
 import { emojiIds } from "@/static/emojiIds";
 import { broadcastToAllConnections } from "@/utility/broadcastToAllConnections";
-import { EmoteReaction } from "@/@types/EmoteReaction";
 
 type ReactRequestBody = {
     action: "onReact";
@@ -128,9 +127,14 @@ export const onReact = async (
     }
 
     try {
-        await broadcastToAllConnections<EmoteReaction>(
+        await broadcastToAllConnections<{
+            action: "onReact";
+            emoteReactionId: string;
+            emoteReactionEmojis: FetchedEmoteReaction["emoteReactionEmojis"];
+        }>(
             connections,
             {
+                action: "onReact",
                 emoteReactionId,
                 emoteReactionEmojis,
             },

@@ -11,10 +11,10 @@ import {
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { mockClient } from "aws-sdk-client-mock";
 import { jwtDecode } from "jwt-decode";
+import { APIRequest } from "@/@types";
 import { onReact } from "@/app/onReact/handler";
 import { getSigningKeys } from "@/utility";
 import { verifyErrorResponse } from "@/test/testUtils";
-import { APIRequest } from "@/@types";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 const apiMock = mockClient(ApiGatewayManagementApiClient);
@@ -192,6 +192,7 @@ const getOnReactEventBody = ({
 
 beforeEach(() => {
     ddbMock.reset();
+    apiMock.reset();
 });
 
 describe("リアクション時", () => {
@@ -251,6 +252,50 @@ describe("リアクション時", () => {
                     },
                 });
             });
+
+            test("クライアントにデータがブロードキャストされる", async () => {
+                testSetUp({
+                    userConnectionGet: "ok",
+                    userConnectionScan: "ok",
+                    userConnectionDelete: "ok",
+                    emoteReactionGet: "ok",
+                    emoteReactionPut: "ok",
+                    apiPostToConnection: "ok",
+                });
+
+                await onReact(
+                    getOnReactEventBody({
+                        reactedUserId: "mock-reacted-user-id",
+                        operation: "increment",
+                    }),
+                );
+
+                expect(apiMock).toHaveReceivedCommandWith(
+                    PostToConnectionCommand,
+                    {
+                        ConnectionId: {
+                            S: "connectionId",
+                        },
+                        Data: Buffer.from(
+                            JSON.stringify({
+                                action: "onReact",
+                                emoteReactionId: "emoteReactionId",
+                                emoteReactionEmojis: [
+                                    {
+                                        emojiId: ":snake:",
+                                        numberOfReactions: 2,
+                                        reactedUserIds: [
+                                            "mock-sub",
+                                            "mock-reacted-user-id",
+                                        ],
+                                    },
+                                ],
+                                totalNumberOfReactions: 2,
+                            }),
+                        ),
+                    },
+                );
+            });
         });
     });
 
@@ -304,6 +349,44 @@ describe("リアクション時", () => {
                         },
                     ],
                 },
+            });
+        });
+
+        test("クライアントにデータがブロードキャストされる", async () => {
+            testSetUp({
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
+            });
+
+            await onReact(
+                getOnReactEventBody({
+                    reactedUserId: "mock-sub",
+                    operation: "decrement",
+                }),
+            );
+
+            expect(apiMock).toHaveReceivedCommandWith(PostToConnectionCommand, {
+                ConnectionId: {
+                    S: "connectionId",
+                },
+                Data: Buffer.from(
+                    JSON.stringify({
+                        action: "onReact",
+                        emoteReactionId: "emoteReactionId",
+                        emoteReactionEmojis: [
+                            {
+                                emojiId: ":snake:",
+                                numberOfReactions: 0,
+                                reactedUserIds: [],
+                            },
+                        ],
+                        totalNumberOfReactions: 0,
+                    }),
+                ),
             });
         });
     });

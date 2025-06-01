@@ -4,7 +4,7 @@ import {
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { envConfig, webSocketConfig } from "@/config";
 import { ErrorCode, ScannedUserConnection } from "@/@types";
-import { deleteItemFromDynamoDB } from "@/utility/deleteItemFromDynamoDB";
+import { deleteItemFromDynamoDB } from "@/utility";
 
 const apiClient = new ApiGatewayManagementApiClient({
     endpoint: webSocketConfig.WEBSOCKET_ENDPOINT,

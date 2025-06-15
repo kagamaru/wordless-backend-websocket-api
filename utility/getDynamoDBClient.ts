@@ -5,7 +5,7 @@ export const getDynamoDBClient = (): DynamoDBDocumentClient => {
     let client = new DynamoDBClient({
         region: "us-west-2",
         credentials: { accessKeyId: "FAKE", secretAccessKey: "FAKE" },
-        endpoint: "http://localhost:8000",
+        endpoint: "http://localhost.test:8000",
     });
     if (process.env.DEPLOY_ENV !== "offline") {
         client = new DynamoDBClient({

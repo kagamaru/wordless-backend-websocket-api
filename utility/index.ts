@@ -1,3 +1,4 @@
+export * from "@/utility/broadcastToAllConnections";
 export * from "@/utility/createErrorResponse";
 export * from "@/utility/deleteItemFromDynamoDB";
 export * from "@/utility/getDynamoDBClient";

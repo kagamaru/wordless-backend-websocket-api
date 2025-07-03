@@ -12,7 +12,7 @@ import {
 import { mockClient } from "aws-sdk-client-mock";
 import { jwtDecode } from "jwt-decode";
 import MockDate from "mockdate";
-import { APIRequest } from "@/@types";
+import { APIRequest, EmojiString } from "@/@types";
 import { onPostEmote } from "@/app/onPostEmote/handler";
 import { verifyErrorResponse } from "@/test/testUtils";
 
@@ -173,10 +173,10 @@ interface OnPostEmoteEventBodyParams {
     connectionId?: string;
     action?: "onPostEmote";
     userId?: "mock-user-id";
-    emoteEmoji1?: `:${string}:`;
-    emoteEmoji2?: `:${string}:`;
-    emoteEmoji3?: `:${string}:`;
-    emoteEmoji4?: `:${string}:`;
+    emoteEmoji1?: EmojiString;
+    emoteEmoji2?: EmojiString;
+    emoteEmoji3?: EmojiString;
+    emoteEmoji4?: EmojiString;
     authorization?: string;
 }
 

@@ -11,7 +11,7 @@ import {
 } from "@aws-sdk/client-apigatewaymanagementapi";
 import { mockClient } from "aws-sdk-client-mock";
 import { jwtDecode } from "jwt-decode";
-import { APIRequest } from "@/@types";
+import { APIRequest, EmojiString } from "@/@types";
 import { onReact } from "@/app/onReact/handler";
 import { getSigningKeys } from "@/utility";
 import { verifyErrorResponse } from "@/test/testUtils";
@@ -162,7 +162,7 @@ interface OnReactEventBodyParams {
     emoteReactionId?: "emoteReactionId";
     reactedUserId?: "mock-reacted-user-id" | "mock-sub";
     operation?: "increment" | "decrement";
-    reactedEmojiId?: `:${string}:`;
+    reactedEmojiId?: EmojiString;
     authorization?: string;
 }
 

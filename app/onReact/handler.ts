@@ -2,6 +2,7 @@ import { envConfig } from "@/config";
 import {
     APIRequest,
     APIResponse,
+    EmojiString,
     FetchedEmoteReaction,
     ScannedUserConnection,
 } from "@/@types";
@@ -20,7 +21,7 @@ import { emojiIds } from "@/static/emojiIds";
 type ReactRequestBody = {
     action: "onReact";
     emoteReactionId: string;
-    reactedEmojiId: `:${string}:`;
+    reactedEmojiId: EmojiString;
     reactedUserId: string;
     operation: "increment" | "decrement";
     Authorization: string;
@@ -159,7 +160,7 @@ export const onReact = async (
 
 function incrementReaction(
     emoteReactionEmojis: FetchedEmoteReaction["emoteReactionEmojis"],
-    reactedEmojiId: `:${string}:`,
+    reactedEmojiId: EmojiString,
     reactedUserId: string,
 ): {
     emoteReactionEmojis: FetchedEmoteReaction["emoteReactionEmojis"];
@@ -203,7 +204,7 @@ function incrementReaction(
 
 function decrementReaction(
     emoteReactionEmojis: FetchedEmoteReaction["emoteReactionEmojis"],
-    reactedEmojiId: `:${string}:`,
+    reactedEmojiId: EmojiString,
     reactedUserId: string,
 ) {
     const emoji = emoteReactionEmojis.find(

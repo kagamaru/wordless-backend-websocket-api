@@ -5,6 +5,7 @@ jest.mock("@/config", () => ({
     envConfig: {
         USER_CONNECTION_TABLE: "user-connection-table-offline",
         EMOTE_REACTION_TABLE: "emote-reaction-table-offline",
+        USER_SUB_TABLE: "user-sub-table-offline",
     },
     cognitoConfig: {
         COGNITO_USER_POOL_ID: "mock-cognito-user-pool-id",

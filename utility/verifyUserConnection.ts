@@ -6,7 +6,7 @@ export async function verifyUserConnection(params: {
     connectionId: string;
     sub: string;
     errorCode: [ErrorCode, ErrorCode];
-}) {
+}): Promise<string> {
     let userConnection: FetchedUserConnection;
     try {
         userConnection = (await getItemFromDynamoDB(
@@ -31,4 +31,6 @@ export async function verifyUserConnection(params: {
             }),
         );
     }
+
+    return userConnection.sub;
 }

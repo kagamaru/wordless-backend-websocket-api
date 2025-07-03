@@ -6,6 +6,7 @@ import {
     ScannedUserConnection,
 } from "@/@types";
 import {
+    broadcastToAllConnections,
     createErrorResponse,
     getItemFromDynamoDB,
     isInvalidRequest,
@@ -15,7 +16,6 @@ import {
     verifyUserConnection,
 } from "@/utility";
 import { emojiIds } from "@/static/emojiIds";
-import { broadcastToAllConnections } from "@/utility/broadcastToAllConnections";
 
 type ReactRequestBody = {
     action: "onReact";

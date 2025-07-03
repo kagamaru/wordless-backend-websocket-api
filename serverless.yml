@@ -27,6 +27,7 @@ provider:
     USER_CONNECTION_TABLE: "user-connection-table-${sls:stage}"
     EMOTE_REACTION_TABLE: "emote-reaction-table-${sls:stage}"
     USERS_TABLE: "users-table-${sls:stage}"
+    USER_SUB_TABLE: "user-sub-table-${sls:stage}"
     DEPLOY_ENV: ${sls:stage}
     DB_HOST: ${self:custom.db_host.${sls:stage}}
     DB_USER: ${self:custom.db_user.${sls:stage}}
@@ -56,6 +57,14 @@ functions:
     events:
       - websocket:
           route: onReact
+  postEmoteHandler:
+    handler: app/onPostEmote/handler.onPostEmote
+    events:
+      - websocket:
+          route: onPostEmote
+    vpc:
+      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
+      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
   defaultHandler:
     handler: app/sendEmotes/handler.sendEmotes
     events:
@@ -104,6 +113,18 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
         TableName: users-table-${sls:stage}
+    UserSubTable:
+      Type: AWS::DynamoDB::Table
+      Condition: IsOffline
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userSub
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userSub
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: user-sub-table-${sls:stage}
     WebSocketApi:
       Type: AWS::ApiGatewayV2::Api
       Properties:
@@ -166,5 +187,7 @@ custom:
             sources: [./seed/user-connection-table-offline.json]
           - table: emote-reaction-table-offline
             sources: [./seed/emote-reaction-table-offline.json]
+          - table: user-sub-table-offline
+            sources: [./seed/user-sub-table-offline.json]
           - table: users-table-offline
             sources: [./seed/users-table-offline.json]

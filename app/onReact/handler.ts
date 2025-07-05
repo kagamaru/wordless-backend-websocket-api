@@ -103,6 +103,10 @@ export const onReact = async (
         return JSON.parse(error.message);
     }
 
+    emoteReactionEmojis.sort(
+        (a, b) => (b.numberOfReactions || 0) - (a.numberOfReactions || 0),
+    );
+
     const totalNumberOfReactions = emoteReactionEmojis.reduce(
         (acc, emoji) => acc + (emoji.numberOfReactions || 0),
         0,

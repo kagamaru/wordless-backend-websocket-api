@@ -120,8 +120,13 @@ const testSetUp = ({
                     emoteReactionEmojis: [
                         {
                             emojiId: ":snake:",
-                            numberOfReactions: 1,
-                            reactedUserIds: ["mock-sub"],
+                            numberOfReactions: 2,
+                            reactedUserIds: ["mock-sub", "mock-sub2"],
+                        },
+                        {
+                            emojiId: ":cat:",
+                            numberOfReactions: 2,
+                            reactedUserIds: ["mock-sub2", "mock-sub3"],
                         },
                     ],
                 },
@@ -242,11 +247,17 @@ describe("リアクション時", () => {
                         emoteReactionEmojis: [
                             {
                                 emojiId: ":snake:",
-                                numberOfReactions: 2,
+                                numberOfReactions: 3,
                                 reactedUserIds: [
                                     "mock-sub",
+                                    "mock-sub2",
                                     "mock-reacted-user-id",
                                 ],
+                            },
+                            {
+                                emojiId: ":cat:",
+                                numberOfReactions: 2,
+                                reactedUserIds: ["mock-sub2", "mock-sub3"],
                             },
                         ],
                     },
@@ -283,14 +294,23 @@ describe("リアクション時", () => {
                                 emoteReactionEmojis: [
                                     {
                                         emojiId: ":snake:",
-                                        numberOfReactions: 2,
+                                        numberOfReactions: 3,
                                         reactedUserIds: [
                                             "mock-sub",
+                                            "mock-sub2",
                                             "mock-reacted-user-id",
                                         ],
                                     },
+                                    {
+                                        emojiId: ":cat:",
+                                        numberOfReactions: 2,
+                                        reactedUserIds: [
+                                            "mock-sub2",
+                                            "mock-sub3",
+                                        ],
+                                    },
                                 ],
-                                totalNumberOfReactions: 2,
+                                totalNumberOfReactions: 5,
                             }),
                         ),
                     },
@@ -343,9 +363,14 @@ describe("リアクション時", () => {
                     emoteReactionId: "emoteReactionId",
                     emoteReactionEmojis: [
                         {
+                            emojiId: ":cat:",
+                            numberOfReactions: 2,
+                            reactedUserIds: ["mock-sub2", "mock-sub3"],
+                        },
+                        {
                             emojiId: ":snake:",
-                            numberOfReactions: 0,
-                            reactedUserIds: [],
+                            numberOfReactions: 1,
+                            reactedUserIds: ["mock-sub2"],
                         },
                     ],
                 },
@@ -379,12 +404,17 @@ describe("リアクション時", () => {
                         emoteReactionId: "emoteReactionId",
                         emoteReactionEmojis: [
                             {
+                                emojiId: ":cat:",
+                                numberOfReactions: 2,
+                                reactedUserIds: ["mock-sub2", "mock-sub3"],
+                            },
+                            {
                                 emojiId: ":snake:",
-                                numberOfReactions: 0,
-                                reactedUserIds: [],
+                                numberOfReactions: 1,
+                                reactedUserIds: ["mock-sub2"],
                             },
                         ],
-                        totalNumberOfReactions: 0,
+                        totalNumberOfReactions: 3,
                     }),
                 ),
             });

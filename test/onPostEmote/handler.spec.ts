@@ -12,7 +12,7 @@ import {
 import { mockClient } from "aws-sdk-client-mock";
 import { jwtDecode } from "jwt-decode";
 import MockDate from "mockdate";
-import { APIRequest } from "@/@types";
+import { APIRequest, EmojiString } from "@/@types";
 import { onPostEmote } from "@/app/onPostEmote/handler";
 import { verifyErrorResponse } from "@/test/testUtils";
 
@@ -38,7 +38,8 @@ jest.mock("@/utility", () => {
     return {
         ...actual,
         getRDSDBClient: jest.fn(() => ({
-            query: (sql: string) => getRDSDBClientQueryMock(sql),
+            query: (sql: string, params: any[]) =>
+                getRDSDBClientQueryMock(sql, params),
             end: () => {},
         })),
     };
@@ -173,10 +174,10 @@ interface OnPostEmoteEventBodyParams {
     connectionId?: string;
     action?: "onPostEmote";
     userId?: "mock-user-id";
-    emoteEmoji1?: `:${string}:`;
-    emoteEmoji2?: `:${string}:`;
-    emoteEmoji3?: `:${string}:`;
-    emoteEmoji4?: `:${string}:`;
+    emoteEmoji1?: EmojiString;
+    emoteEmoji2?: EmojiString;
+    emoteEmoji3?: EmojiString;
+    emoteEmoji4?: EmojiString;
     authorization?: string;
 }
 
@@ -241,7 +242,17 @@ describe("エモート投稿時", () => {
                 await onPostEmote(getOnPostEmoteEventBody({}));
 
                 expect(getRDSDBClientQueryMock).toHaveBeenCalledWith(
-                    `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES ('mock-guid', 'mock-guid', 'mock-user-id', '2025-07-02 15:06:22', ':rat:', 'null', 'null', 'null', 0)`,
+                    `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+                    [
+                        "mock-guid",
+                        "mock-guid",
+                        "mock-user-id",
+                        "2025-07-02 15:06:22",
+                        ":rat:",
+                        undefined,
+                        undefined,
+                        undefined,
+                    ],
                 );
                 expect(getRDSDBClientQueryMock).toHaveBeenCalledTimes(1);
             });
@@ -272,7 +283,17 @@ describe("エモート投稿時", () => {
                 );
 
                 expect(getRDSDBClientQueryMock).toHaveBeenCalledWith(
-                    `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES ('mock-guid', 'mock-guid', 'mock-user-id', '2025-07-02 15:06:22', ':rat:', ':cow:', 'null', 'null', 0)`,
+                    `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+                    [
+                        "mock-guid",
+                        "mock-guid",
+                        "mock-user-id",
+                        "2025-07-02 15:06:22",
+                        ":rat:",
+                        ":cow:",
+                        undefined,
+                        undefined,
+                    ],
                 );
                 expect(getRDSDBClientQueryMock).toHaveBeenCalledTimes(1);
             });
@@ -303,7 +324,17 @@ describe("エモート投稿時", () => {
                 );
 
                 expect(getRDSDBClientQueryMock).toHaveBeenCalledWith(
-                    `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES ('mock-guid', 'mock-guid', 'mock-user-id', '2025-07-02 15:06:22', ':rat:', ':cow:', ':tiger:', 'null', 0)`,
+                    `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+                    [
+                        "mock-guid",
+                        "mock-guid",
+                        "mock-user-id",
+                        "2025-07-02 15:06:22",
+                        ":rat:",
+                        ":cow:",
+                        ":tiger:",
+                        undefined,
+                    ],
                 );
                 expect(getRDSDBClientQueryMock).toHaveBeenCalledTimes(1);
             });
@@ -334,7 +365,17 @@ describe("エモート投稿時", () => {
                 );
 
                 expect(getRDSDBClientQueryMock).toHaveBeenCalledWith(
-                    `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES ('mock-guid', 'mock-guid', 'mock-user-id', '2025-07-02 15:06:22', ':rat:', ':cow:', ':tiger:', ':rabbit:', 0)`,
+                    `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+                    [
+                        "mock-guid",
+                        "mock-guid",
+                        "mock-user-id",
+                        "2025-07-02 15:06:22",
+                        ":rat:",
+                        ":cow:",
+                        ":tiger:",
+                        ":rabbit:",
+                    ],
                 );
                 expect(getRDSDBClientQueryMock).toHaveBeenCalledTimes(1);
             });

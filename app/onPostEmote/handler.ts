@@ -1,7 +1,12 @@
 import dayjs from "dayjs";
 import { Guid } from "guid-typescript";
 import { jwtDecode, JwtPayload } from "jwt-decode";
-import { APIRequest, APIResponse, ScannedUserConnection } from "@/@types";
+import {
+    APIRequest,
+    APIResponse,
+    EmojiString,
+    ScannedUserConnection,
+} from "@/@types";
 import { envConfig } from "@/config";
 import {
     broadcastToAllConnections,
@@ -21,10 +26,10 @@ const mysqlClient = getRDSDBClient();
 type PostEmoteRequestBody = {
     action: "onPostEmote";
     userId: string;
-    emoteEmoji1: `:${string}:`;
-    emoteEmoji2: `:${string}:` | undefined;
-    emoteEmoji3: `:${string}:` | undefined;
-    emoteEmoji4: `:${string}:` | undefined;
+    emoteEmoji1: EmojiString;
+    emoteEmoji2: EmojiString | undefined;
+    emoteEmoji3: EmojiString | undefined;
+    emoteEmoji4: EmojiString | undefined;
     Authorization: string;
 };
 
@@ -127,9 +132,21 @@ export const onPostEmote = async (
     const emoteDatetime = dayjs().format("YYYY-MM-DD HH:mm:ss");
 
     try {
+        // NOTE: undefinedの値はmySqlClient側でNULLに変換される
         await mysqlClient.query(
-            `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES ('${emoteId}', '${emoteReactionId}', '${userId}', '${emoteDatetime}', '${emoteEmoji1}', '${emoteEmoji2 ?? null}', '${emoteEmoji3 ?? null}', '${emoteEmoji4 ?? null}', 0)`,
+            `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+            [
+                emoteId,
+                emoteReactionId,
+                userId,
+                emoteDatetime,
+                emoteEmoji1,
+                emoteEmoji2,
+                emoteEmoji3,
+                emoteEmoji4,
+            ],
         );
+        await mysqlClient.end();
     } catch (error) {
         return createErrorResponse(500, "WSK-47");
     }
@@ -162,10 +179,10 @@ export const onPostEmote = async (
         await broadcastToAllConnections<{
             action: "onPostEmote";
             emoteId: string;
-            emoteEmoji1: `:${string}:`;
-            emoteEmoji2: `:${string}:` | undefined;
-            emoteEmoji3: `:${string}:` | undefined;
-            emoteEmoji4: `:${string}:` | undefined;
+            emoteEmoji1: EmojiString;
+            emoteEmoji2: EmojiString | undefined;
+            emoteEmoji3: EmojiString | undefined;
+            emoteEmoji4: EmojiString | undefined;
             emoteReactionId: string;
             emoteReactionEmojis: [];
             totalNumberOfReactions: 0;

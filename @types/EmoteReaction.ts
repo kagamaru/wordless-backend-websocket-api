@@ -1,7 +1,9 @@
+import { EmojiString } from "@/@types";
+
 export type EmoteReaction = {
     emoteReactionId: string;
     emoteReactionEmojis: Array<{
-        emojiId: `:${string}:`;
+        emojiId: EmojiString;
         numberOfReactions: number;
     }>;
 };

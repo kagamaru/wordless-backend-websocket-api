@@ -146,9 +146,10 @@ export const onPostEmote = async (
                 emoteEmoji4,
             ],
         );
-        await mysqlClient.end();
     } catch (error) {
         return createErrorResponse(500, "WSK-47");
+    } finally {
+        await mysqlClient.end();
     }
 
     try {

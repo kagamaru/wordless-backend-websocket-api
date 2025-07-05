@@ -132,9 +132,21 @@ export const onPostEmote = async (
     const emoteDatetime = dayjs().format("YYYY-MM-DD HH:mm:ss");
 
     try {
+        // NOTE: undefinedの値はmySqlClient側でNULLに変換される
         await mysqlClient.query(
-            `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES ('${emoteId}', '${emoteReactionId}', '${userId}', '${emoteDatetime}', '${emoteEmoji1}', '${emoteEmoji2 ?? null}', '${emoteEmoji3 ?? null}', '${emoteEmoji4 ?? null}', 0)`,
+            `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+            [
+                emoteId,
+                emoteReactionId,
+                userId,
+                emoteDatetime,
+                emoteEmoji1,
+                emoteEmoji2,
+                emoteEmoji3,
+                emoteEmoji4,
+            ],
         );
+        await mysqlClient.end();
     } catch (error) {
         return createErrorResponse(500, "WSK-47");
     }

@@ -15,12 +15,14 @@ import MockDate from "mockdate";
 import { APIRequest, EmojiString } from "@/@types";
 import { onPostEmote } from "@/app/onPostEmote/handler";
 import { verifyErrorResponse } from "@/test/testUtils";
+import { Emote } from "@/classes/Emote";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 const apiMock = mockClient(ApiGatewayManagementApiClient);
 
 const userConnectionTableName = "user-connection-table-offline";
 const userSubTableName = "user-sub-table-offline";
+const usersTableName = "users-table-offline";
 const emoteReactionTableName = "emote-reaction-table-offline";
 
 type TestSetupOptions = {
@@ -28,18 +30,39 @@ type TestSetupOptions = {
     userConnectionGet: "ok" | "notFound" | "fail";
     userConnectionScan: "ok" | "notFound" | "fail";
     userConnectionDelete: "ok" | "fail";
+    userGet: "ok" | "notFound" | "fail";
     emoteReactionPut: "ok" | "fail";
     apiPostToConnection: "ok" | "fail";
 };
 
-let getRDSDBClientQueryMock: jest.Mock<any, any, any>;
+let getRDSDBClientInsertQueryMock = jest.fn();
+let getRDSDBClientSelectQueryMock = jest.fn();
 jest.mock("@/utility", () => {
     const actual = jest.requireActual("@/utility");
     return {
         ...actual,
         getRDSDBClient: jest.fn(() => ({
-            query: (sql: string, params: any[]) =>
-                getRDSDBClientQueryMock(sql, params),
+            query: async (sql: string, params: any[]) => {
+                if (sql.includes("SELECT")) {
+                    await getRDSDBClientSelectQueryMock(sql, params);
+                    return [
+                        {
+                            sequence_number: 2,
+                            emote_id: "mock-guid",
+                            emote_reaction_id: "mock-guid",
+                            user_id: "mock-user-id",
+                            emote_datetime: "2025-07-02 15:06:22",
+                            emote_emoji1: ":rat:",
+                            emote_emoji2: undefined,
+                            emote_emoji3: undefined,
+                            emote_emoji4: undefined,
+                            is_deleted: 0,
+                        },
+                    ];
+                } else if (sql.includes("INSERT")) {
+                    await getRDSDBClientInsertQueryMock(sql, params);
+                }
+            },
             end: () => {},
         })),
     };
@@ -56,6 +79,7 @@ const testSetUp = ({
     userConnectionGet,
     userConnectionScan,
     userConnectionDelete,
+    userGet,
     emoteReactionPut,
     apiPostToConnection,
 }: TestSetupOptions) => {
@@ -70,6 +94,9 @@ const testSetUp = ({
     });
     const userConnectionDeleteDdbMock = ddbMock.on(DeleteCommand, {
         TableName: userConnectionTableName,
+    });
+    const userDdbGetMock = ddbMock.on(GetCommand, {
+        TableName: usersTableName,
     });
     const emoteReactionDdbPutMock = ddbMock.on(PutCommand, {
         TableName: emoteReactionTableName,
@@ -91,6 +118,26 @@ const testSetUp = ({
             break;
         case "fail":
             userSubDdbGetMock.rejects(new Error());
+            break;
+    }
+
+    switch (userGet) {
+        case "ok":
+            userDdbGetMock.resolves({
+                Item: {
+                    userId: "mock-user-id",
+                    userName: "mock-user-name",
+                    userAvatarUrl: "mock-user-avatar-url",
+                },
+            });
+            break;
+        case "notFound":
+            userDdbGetMock.resolves({
+                Item: undefined,
+            });
+            break;
+        case "fail":
+            userDdbGetMock.rejects(new Error());
             break;
     }
 
@@ -210,12 +257,15 @@ const getOnPostEmoteEventBody = ({
 beforeEach(() => {
     ddbMock.reset();
     apiMock.reset();
-    getRDSDBClientQueryMock = jest.fn();
+    getRDSDBClientInsertQueryMock = jest.fn();
+    getRDSDBClientSelectQueryMock = jest.fn();
     MockDate.set(new Date("2025-07-02 15:06:22"));
 });
 
 afterEach(() => {
     MockDate.reset();
+    getRDSDBClientInsertQueryMock.mockClear();
+    getRDSDBClientSelectQueryMock.mockClear();
 });
 
 describe("エモート投稿時", () => {
@@ -226,6 +276,7 @@ describe("エモート投稿時", () => {
                 userConnectionGet: "ok",
                 userConnectionScan: "ok",
                 userConnectionDelete: "ok",
+                userGet: "ok",
                 emoteReactionPut: "ok",
                 apiPostToConnection: "ok",
             });
@@ -241,7 +292,7 @@ describe("エモート投稿時", () => {
             test("DBに対してインサートを行うクエリが実行される", async () => {
                 await onPostEmote(getOnPostEmoteEventBody({}));
 
-                expect(getRDSDBClientQueryMock).toHaveBeenCalledWith(
+                expect(getRDSDBClientInsertQueryMock).toHaveBeenCalledWith(
                     `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
                     [
                         "mock-guid",
@@ -254,7 +305,7 @@ describe("エモート投稿時", () => {
                         undefined,
                     ],
                 );
-                expect(getRDSDBClientQueryMock).toHaveBeenCalledTimes(1);
+                expect(getRDSDBClientInsertQueryMock).toHaveBeenCalledTimes(1);
             });
         });
 
@@ -282,7 +333,7 @@ describe("エモート投稿時", () => {
                     }),
                 );
 
-                expect(getRDSDBClientQueryMock).toHaveBeenCalledWith(
+                expect(getRDSDBClientInsertQueryMock).toHaveBeenCalledWith(
                     `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
                     [
                         "mock-guid",
@@ -295,7 +346,7 @@ describe("エモート投稿時", () => {
                         undefined,
                     ],
                 );
-                expect(getRDSDBClientQueryMock).toHaveBeenCalledTimes(1);
+                expect(getRDSDBClientInsertQueryMock).toHaveBeenCalledTimes(1);
             });
         });
 
@@ -323,7 +374,7 @@ describe("エモート投稿時", () => {
                     }),
                 );
 
-                expect(getRDSDBClientQueryMock).toHaveBeenCalledWith(
+                expect(getRDSDBClientInsertQueryMock).toHaveBeenCalledWith(
                     `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
                     [
                         "mock-guid",
@@ -336,7 +387,7 @@ describe("エモート投稿時", () => {
                         undefined,
                     ],
                 );
-                expect(getRDSDBClientQueryMock).toHaveBeenCalledTimes(1);
+                expect(getRDSDBClientInsertQueryMock).toHaveBeenCalledTimes(1);
             });
         });
 
@@ -364,7 +415,7 @@ describe("エモート投稿時", () => {
                     }),
                 );
 
-                expect(getRDSDBClientQueryMock).toHaveBeenCalledWith(
+                expect(getRDSDBClientInsertQueryMock).toHaveBeenCalledWith(
                     `INSERT INTO wordlessdb.emote_table (emote_id, emote_reaction_id, user_id, emote_datetime, emote_emoji1, emote_emoji2, emote_emoji3, emote_emoji4, is_deleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
                     [
                         "mock-guid",
@@ -377,7 +428,7 @@ describe("エモート投稿時", () => {
                         ":rabbit:",
                     ],
                 );
-                expect(getRDSDBClientQueryMock).toHaveBeenCalledTimes(1);
+                expect(getRDSDBClientInsertQueryMock).toHaveBeenCalledTimes(1);
             });
         });
 
@@ -387,6 +438,7 @@ describe("エモート投稿時", () => {
                 userConnectionGet: "ok",
                 userConnectionScan: "ok",
                 userConnectionDelete: "ok",
+                userGet: "ok",
                 emoteReactionPut: "ok",
                 apiPostToConnection: "ok",
             });
@@ -408,6 +460,7 @@ describe("エモート投稿時", () => {
                 userConnectionGet: "ok",
                 userConnectionScan: "ok",
                 userConnectionDelete: "ok",
+                userGet: "ok",
                 emoteReactionPut: "ok",
                 apiPostToConnection: "ok",
             });
@@ -421,14 +474,31 @@ describe("エモート投稿時", () => {
                 Data: Buffer.from(
                     JSON.stringify({
                         action: "onPostEmote",
-                        emoteId: "mock-guid",
-                        emoteEmoji1: ":rat:",
-                        emoteEmoji2: undefined,
-                        emoteEmoji3: undefined,
-                        emoteEmoji4: undefined,
-                        emoteReactionId: "mock-guid",
-                        emoteReactionEmojis: [],
-                        totalNumberOfReactions: 0,
+                        emote: new Emote(
+                            2,
+                            "mock-guid",
+                            "mock-user-name",
+                            "mock-user-id",
+                            "2025-07-02 15:06:22",
+                            "mock-guid",
+                            [
+                                {
+                                    emojiId: ":rat:",
+                                },
+                                {
+                                    emojiId: undefined,
+                                },
+                                {
+                                    emojiId: undefined,
+                                },
+                                {
+                                    emojiId: undefined,
+                                },
+                            ],
+                            "mock-user-avatar-url",
+                            [],
+                            0,
+                        ),
                     }),
                 ),
             });
@@ -496,6 +566,7 @@ describe("エモート投稿時", () => {
                     userConnectionGet: "ok",
                     userConnectionScan: "ok",
                     userConnectionDelete: "ok",
+                    userGet: "ok",
                     emoteReactionPut: "ok",
                     apiPostToConnection: "ok",
                 });
@@ -534,6 +605,7 @@ describe("エモート投稿時", () => {
                     userConnectionGet: "ok",
                     userConnectionScan: "ok",
                     userConnectionDelete: "ok",
+                    userGet: "ok",
                     emoteReactionPut: "ok",
                     apiPostToConnection: "ok",
                 });
@@ -575,6 +647,7 @@ describe("エモート投稿時", () => {
                     userConnectionGet: "ok",
                     userConnectionScan: "ok",
                     userConnectionDelete: "ok",
+                    userGet: "ok",
                     emoteReactionPut: "ok",
                     apiPostToConnection: "ok",
                 });
@@ -599,6 +672,7 @@ describe("エモート投稿時", () => {
                 userConnectionGet: "ok",
                 userConnectionScan: "ok",
                 userConnectionDelete: "ok",
+                userGet: "ok",
                 emoteReactionPut: "ok",
                 apiPostToConnection: "ok",
             });
@@ -614,6 +688,7 @@ describe("エモート投稿時", () => {
                 userConnectionGet: "notFound",
                 userConnectionScan: "ok",
                 userConnectionDelete: "ok",
+                userGet: "ok",
                 emoteReactionPut: "ok",
                 apiPostToConnection: "ok",
             });
@@ -629,6 +704,7 @@ describe("エモート投稿時", () => {
                 userConnectionGet: "fail",
                 userConnectionScan: "ok",
                 userConnectionDelete: "ok",
+                userGet: "ok",
                 emoteReactionPut: "ok",
                 apiPostToConnection: "ok",
             });
@@ -644,6 +720,7 @@ describe("エモート投稿時", () => {
                 userConnectionGet: "ok",
                 userConnectionScan: "ok",
                 userConnectionDelete: "ok",
+                userGet: "ok",
                 emoteReactionPut: "ok",
                 apiPostToConnection: "ok",
             });
@@ -659,6 +736,7 @@ describe("エモート投稿時", () => {
                 userConnectionGet: "ok",
                 userConnectionScan: "ok",
                 userConnectionDelete: "ok",
+                userGet: "ok",
                 emoteReactionPut: "ok",
                 apiPostToConnection: "ok",
             });
@@ -669,12 +747,15 @@ describe("エモート投稿時", () => {
         });
 
         test("EmoteTable(RDS)との接続でエラーが発生した時、ステータスコード500とWSK-47を返す", async () => {
-            getRDSDBClientQueryMock = jest.fn().mockRejectedValue(new Error());
+            getRDSDBClientInsertQueryMock = jest
+                .fn()
+                .mockRejectedValue(new Error());
             testSetUp({
                 userSubGet: "ok",
                 userConnectionGet: "ok",
                 userConnectionScan: "ok",
                 userConnectionDelete: "ok",
+                userGet: "ok",
                 emoteReactionPut: "ok",
                 apiPostToConnection: "ok",
             });
@@ -683,43 +764,46 @@ describe("エモート投稿時", () => {
             verifyErrorResponse(response, 500, "WSK-47");
         });
 
-        test("EmoteReactionTableに対してデータが登録できないとき、ステータスコード500とWSK-48を返す", async () => {
+        test("UserTableからデータが取得できないとき、ステータスコード404とWSK-48を返す", async () => {
             testSetUp({
                 userSubGet: "ok",
                 userConnectionGet: "ok",
                 userConnectionScan: "ok",
                 userConnectionDelete: "ok",
+                userGet: "notFound",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
+            });
+
+            const response = await onPostEmote(getOnPostEmoteEventBody({}));
+
+            verifyErrorResponse(response, 404, "WSK-48");
+        });
+
+        test("UserTableと接続できないとき、ステータスコード500とWSK-49を返す", async () => {
+            testSetUp({
+                userSubGet: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
+                userGet: "fail",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
+            });
+
+            const response = await onPostEmote(getOnPostEmoteEventBody({}));
+
+            verifyErrorResponse(response, 500, "WSK-49");
+        });
+
+        test("EmoteReactionTableに対してデータが登録できないとき、ステータスコード500とWSK-50を返す", async () => {
+            testSetUp({
+                userSubGet: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
+                userGet: "ok",
                 emoteReactionPut: "fail",
-                apiPostToConnection: "ok",
-            });
-
-            const response = await onPostEmote(getOnPostEmoteEventBody({}));
-
-            verifyErrorResponse(response, 500, "WSK-48");
-        });
-
-        test("UserConnectionTableからデータを全件取得して0件だった時、ステータスコード404とWSK-49を返す", async () => {
-            testSetUp({
-                userSubGet: "ok",
-                userConnectionGet: "ok",
-                userConnectionScan: "notFound",
-                userConnectionDelete: "ok",
-                emoteReactionPut: "ok",
-                apiPostToConnection: "ok",
-            });
-
-            const response = await onPostEmote(getOnPostEmoteEventBody({}));
-
-            verifyErrorResponse(response, 404, "WSK-49");
-        });
-
-        test("UserConnectionTableに対して全件取得しようとして接続できない時、ステータスコード500とWSK-50を返す", async () => {
-            testSetUp({
-                userSubGet: "ok",
-                userConnectionGet: "ok",
-                userConnectionScan: "fail",
-                userConnectionDelete: "ok",
-                emoteReactionPut: "ok",
                 apiPostToConnection: "ok",
             });
 
@@ -728,19 +812,52 @@ describe("エモート投稿時", () => {
             verifyErrorResponse(response, 500, "WSK-50");
         });
 
-        test("API Gatewayと接続できない時、ステータスコード500とWSK-51を返す", async () => {
+        test("UserConnectionTableからデータを全件取得して0件だった時、ステータスコード404とWSK-51を返す", async () => {
+            testSetUp({
+                userSubGet: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "notFound",
+                userConnectionDelete: "ok",
+                userGet: "ok",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
+            });
+
+            const response = await onPostEmote(getOnPostEmoteEventBody({}));
+
+            verifyErrorResponse(response, 404, "WSK-51");
+        });
+
+        test("UserConnectionTableに対して全件取得しようとして接続できない時、ステータスコード500とWSK-52を返す", async () => {
+            testSetUp({
+                userSubGet: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "fail",
+                userConnectionDelete: "ok",
+                userGet: "ok",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
+            });
+
+            const response = await onPostEmote(getOnPostEmoteEventBody({}));
+
+            verifyErrorResponse(response, 500, "WSK-52");
+        });
+
+        test("API Gatewayと接続できない時、ステータスコード500とWSK-53を返す", async () => {
             testSetUp({
                 userSubGet: "ok",
                 userConnectionGet: "ok",
                 userConnectionScan: "ok",
                 userConnectionDelete: "ok",
+                userGet: "ok",
                 emoteReactionPut: "ok",
                 apiPostToConnection: "fail",
             });
 
             const response = await onPostEmote(getOnPostEmoteEventBody({}));
 
-            verifyErrorResponse(response, 500, "WSK-51");
+            verifyErrorResponse(response, 500, "WSK-53");
         });
 
         test("UserConnectionTableからデータの削除に失敗した時、エラーにはしない", async () => {
@@ -749,6 +866,7 @@ describe("エモート投稿時", () => {
                 userConnectionGet: "ok",
                 userConnectionScan: "ok",
                 userConnectionDelete: "fail",
+                userGet: "ok",
                 emoteReactionPut: "ok",
                 apiPostToConnection: "ok",
             });

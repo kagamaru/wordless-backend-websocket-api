@@ -5,12 +5,13 @@ export class Emote {
     public userId: string;
     public emoteDatetime: string;
     public emoteReactionId: string;
-    public emoteEmojis: Array<{ emojiId: string }>;
+    public emoteEmojis: Array<{ emojiId: string | undefined }>;
     public userAvatarUrl: string;
     public emoteReactionEmojis: Array<{
         emojiId: string;
         numberOfReactions: number;
     }>;
+    public totalNumberOfReactions: number;
 
     constructor(
         sequenceNumber: number,
@@ -19,9 +20,10 @@ export class Emote {
         userId: string,
         emoteDatetime: string,
         emoteReactionId: string,
-        emoteEmojis: Array<{ emojiId: string }>,
+        emoteEmojis: Array<{ emojiId: string | undefined }>,
         userAvatarUrl: string,
         emoteReactionEmojis: Array<EmoteReactionEmojiWithNumber>,
+        totalNumberOfReactions: number,
     ) {
         this.sequenceNumber = sequenceNumber;
         this.emoteId = emoteId;
@@ -32,6 +34,7 @@ export class Emote {
         this.emoteEmojis = emoteEmojis;
         this.userAvatarUrl = userAvatarUrl;
         this.emoteReactionEmojis = emoteReactionEmojis;
+        this.totalNumberOfReactions = totalNumberOfReactions;
     }
 }
 

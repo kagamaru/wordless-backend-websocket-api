@@ -102,26 +102,24 @@ export const onPostEmoteEntry = async (
         FunctionName: envConfig.POST_EMOTE_CORE_LAMBDA_NAME,
         InvocationType: "RequestResponse",
         Payload: JSON.stringify({
-            queryStringParameters: {
-                userId,
-                emoteEmoji1,
-                emoteEmoji2,
-                emoteEmoji3,
-                emoteEmoji4,
-            },
+            userId,
+            emoteEmoji1,
+            emoteEmoji2,
+            emoteEmoji3,
+            emoteEmoji4,
         }),
     });
 
     let postEmoteCoreResponse: Emote | APIResponse<undefined>;
     let payload: Uint8ArrayBlobAdapter;
     try {
-        payload = (await lambdaClient.send(invokeCommand)).Payload;
+        const payload = (await lambdaClient.send(invokeCommand)).Payload;
         postEmoteCoreResponse = JSON.parse(payload.transformToString()).body
             .emote as Emote;
     } catch {
-        const error = JSON.parse(payload.transformToString()).body.error;
+        const errorContent = JSON.parse(payload.transformToString()).body.error;
         const statusCode = JSON.parse(payload.transformToString()).statusCode;
-        return createErrorResponse(statusCode, error);
+        return createErrorResponse(statusCode, errorContent);
     }
 
     let connections: Array<ScannedUserConnection>;

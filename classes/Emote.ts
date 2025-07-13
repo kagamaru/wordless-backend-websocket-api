@@ -1,3 +1,5 @@
+import { EmoteEmojis } from "@/@types";
+
 export class Emote {
     public sequenceNumber: number;
     public emoteId: string;
@@ -5,7 +7,7 @@ export class Emote {
     public userId: string;
     public emoteDatetime: string;
     public emoteReactionId: string;
-    public emoteEmojis: Array<{ emojiId: string | undefined }>;
+    public emoteEmojis: EmoteEmojis;
     public userAvatarUrl: string;
     public emoteReactionEmojis: Array<{
         emojiId: string;
@@ -20,7 +22,7 @@ export class Emote {
         userId: string,
         emoteDatetime: string,
         emoteReactionId: string,
-        emoteEmojis: Array<{ emojiId: string | undefined }>,
+        emoteEmojis: EmoteEmojis,
         userAvatarUrl: string,
         emoteReactionEmojis: Array<EmoteReactionEmojiWithNumber>,
         totalNumberOfReactions: number,

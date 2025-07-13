@@ -1,7 +1,7 @@
 import { EmojiIdObject } from "@/@types";
 
 export type EmoteEmojis =
-    | [EmojiIdObject]
-    | [EmojiIdObject, EmojiIdObject]
-    | [EmojiIdObject, EmojiIdObject, EmojiIdObject]
+    | [EmojiIdObject, undefined, undefined, undefined]
+    | [EmojiIdObject, EmojiIdObject, undefined, undefined]
+    | [EmojiIdObject, EmojiIdObject, EmojiIdObject, undefined]
     | [EmojiIdObject, EmojiIdObject, EmojiIdObject, EmojiIdObject];

@@ -8,6 +8,7 @@ export * from "@/@types/FetchedEmoteReaction";
 export * from "@/@types/FetchedEmote";
 export * from "@/@types/FetchedJWKKeys";
 export * from "@/@types/FetchedUserConnection";
+export * from "@/@types/PostEmoteCorePayload";
 export * from "@/@types/ScannedUserConnection";
 export * from "@/@types/User";
 export * from "@/@types/UserSub";

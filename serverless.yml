@@ -38,7 +38,7 @@ provider:
     COGNITO_USER_POOL_ID: ${self:custom.cognito_user_pool_id.${sls:stage}}
     COGNITO_REGION: us-west-2
     WEBSOCKET_ENDPOINT: ${self:custom.websocket_endpoint.${sls:stage}}
-    POST_EMOTE_CORE_LAMBDA_NAME: ${self:custom.post_emote_core_lambda_name.${sls:stage}}
+    POST_EMOTE_CORE_LAMBDA_NAME: wordless-backend-websocket-api-${sls:stage}-post-emote-core
   websocketsApiName: wordless-backend-websocket-api-${sls:stage}
 
 functions:
@@ -69,7 +69,7 @@ functions:
           route: $default
   postEmoteCore: 
     handler: app/onPostEmote/core.onPostEmoteCore
-      vpc:
+    vpc:
       securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
       subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
 
@@ -167,9 +167,6 @@ custom:
   websocket_endpoint:
     dev: ${env:WEBSOCKET_ENDPOINT}
     prod: ${env:WEBSOCKET_ENDPOINT}
-  post_emote_core_lambda_name:
-    dev: wordless-backend-websocket-api-dev-postEmoteCore
-    prod: wordless-backend-websocket-api-prod-postEmoteCore
 
   serverless-dynamodb:
     stages:

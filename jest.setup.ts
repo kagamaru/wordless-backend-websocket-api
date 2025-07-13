@@ -7,6 +7,8 @@ jest.mock("@/config", () => ({
         EMOTE_REACTION_TABLE: "emote-reaction-table-offline",
         USER_SUB_TABLE: "user-sub-table-offline",
         USERS_TABLE: "users-table-offline",
+        POST_EMOTE_CORE_LAMBDA_NAME:
+            "wordless-backend-websocket-api-offline-post-emote-core",
     },
     cognitoConfig: {
         COGNITO_USER_POOL_ID: "mock-cognito-user-pool-id",

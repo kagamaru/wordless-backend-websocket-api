@@ -23,6 +23,8 @@ provider:
             - Fn::GetAtt: [UserConnectionTable, Arn]
             - arn:aws:dynamodb:us-west-2:${aws:accountId}:table/emote-reaction-table-${sls:stage}
             - arn:aws:dynamodb:us-west-2:${aws:accountId}:table/users-table-${sls:stage}
+            - arn:aws:dynamodb:us-west-2:${aws:accountId}:table/user-sub-table-${sls:stage}
+            - arn:aws:lambda:us-west-2:${aws:accountId}:function:wordless-backend-websocket-api-dev-postEmoteCore
   environment:
     USER_CONNECTION_TABLE: "user-connection-table-${sls:stage}"
     EMOTE_REACTION_TABLE: "emote-reaction-table-${sls:stage}"
@@ -36,6 +38,7 @@ provider:
     COGNITO_USER_POOL_ID: ${self:custom.cognito_user_pool_id.${sls:stage}}
     COGNITO_REGION: us-west-2
     WEBSOCKET_ENDPOINT: ${self:custom.websocket_endpoint.${sls:stage}}
+    POST_EMOTE_CORE_LAMBDA_NAME: wordless-backend-websocket-api-${sls:stage}-post-emote-core
   websocketsApiName: wordless-backend-websocket-api-${sls:stage}
 
 functions:
@@ -49,27 +52,23 @@ functions:
     events:
       - websocket:
           route: $disconnect
-    vpc:
-      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
-      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
   reactionHandler:
     handler: app/onReact/handler.onReact
     events:
       - websocket:
           route: onReact
   postEmoteHandler:
-    handler: app/onPostEmote/handler.onPostEmote
+    handler: app/onPostEmote/entry.onPostEmoteEntry
     events:
       - websocket:
           route: onPostEmote
-    vpc:
-      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
-      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
   defaultHandler:
     handler: app/sendEmotes/handler.sendEmotes
     events:
       - websocket:
           route: $default
+  postEmoteCore: 
+    handler: app/onPostEmote/core.onPostEmoteCore
     vpc:
       securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
       subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
@@ -168,6 +167,7 @@ custom:
   websocket_endpoint:
     dev: ${env:WEBSOCKET_ENDPOINT}
     prod: ${env:WEBSOCKET_ENDPOINT}
+
   serverless-dynamodb:
     stages:
       - offline

@@ -13,7 +13,9 @@
     "dependencies": {
         "@aws-sdk/client-apigatewaymanagementapi": "^3.806.0",
         "@aws-sdk/client-dynamodb": "^3.585.0",
+        "@aws-sdk/client-lambda": "^3.840.0",
         "@aws-sdk/lib-dynamodb": "^3.585.0",
+        "@aws-sdk/util-stream": "^3.370.0",
         "jwt-decode": "^4.0.0",
         "serverless-http": "^3.2.0"
     },

@@ -1,5 +1,4 @@
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
-import { Uint8ArrayBlobAdapter } from "@aws-sdk/util-stream";
 import dayjs from "dayjs";
 import {
     APIRequest,
@@ -111,23 +110,20 @@ export const onPostEmoteEntry = async (
     });
 
     let postEmoteCoreResponse: Emote | APIResponse<undefined>;
-    let payload: Uint8ArrayBlobAdapter;
     try {
         const payload = (await lambdaClient.send(invokeCommand)).Payload;
         postEmoteCoreResponse = JSON.parse(payload.transformToString()).body
             .emote as Emote;
     } catch {
-        const errorContent = JSON.parse(payload.transformToString()).body.error;
-        const statusCode = JSON.parse(payload.transformToString()).statusCode;
-        return createErrorResponse(statusCode, errorContent);
+        return createErrorResponse(500, "WSK-44");
     }
 
     let connections: Array<ScannedUserConnection>;
     try {
         connections = (await scanItemsFromDynamoDB(
             envConfig.USER_CONNECTION_TABLE,
-            "WSK-44",
             "WSK-45",
+            "WSK-46",
         )) as Array<ScannedUserConnection>;
     } catch (error) {
         return JSON.parse(error.message);
@@ -143,8 +139,8 @@ export const onPostEmoteEntry = async (
                 action: "onPostEmote",
                 emote: postEmoteCoreResponse,
             },
-            "WSK-46",
             "WSK-47",
+            "WSK-48",
         );
     } catch (error) {
         return JSON.parse(error.message);

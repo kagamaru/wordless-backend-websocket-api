@@ -203,64 +203,132 @@ beforeEach(() => {
 describe("リアクション時", () => {
     describe("正常系", () => {
         describe("increment時", () => {
-            test("200を返す", async () => {
-                testSetUp({
-                    userConnectionGet: "ok",
-                    userConnectionScan: "ok",
-                    userConnectionDelete: "ok",
-                    emoteReactionGet: "ok",
-                    emoteReactionPut: "ok",
-                    apiPostToConnection: "ok",
+            describe("すでにリアクションしたことがある絵文字に対してリアクションした場合", () => {
+                test("200を返す", async () => {
+                    testSetUp({
+                        userConnectionGet: "ok",
+                        userConnectionScan: "ok",
+                        userConnectionDelete: "ok",
+                        emoteReactionGet: "ok",
+                        emoteReactionPut: "ok",
+                        apiPostToConnection: "ok",
+                    });
+
+                    const response = await onReact(
+                        getOnReactEventBody({
+                            reactedUserId: "mock-reacted-user-id",
+                            operation: "increment",
+                        }),
+                    );
+
+                    expect(response.statusCode).toBe(200);
                 });
 
-                const response = await onReact(
-                    getOnReactEventBody({
-                        reactedUserId: "mock-reacted-user-id",
-                        operation: "increment",
-                    }),
-                );
+                test("EmoteReactionTableに対してPutのリクエスト(+1)が送付される", async () => {
+                    testSetUp({
+                        userConnectionGet: "ok",
+                        userConnectionScan: "ok",
+                        userConnectionDelete: "ok",
+                        emoteReactionGet: "ok",
+                        emoteReactionPut: "ok",
+                        apiPostToConnection: "ok",
+                    });
 
-                expect(response.statusCode).toBe(200);
+                    await onReact(
+                        getOnReactEventBody({
+                            reactedUserId: "mock-reacted-user-id",
+                            operation: "increment",
+                        }),
+                    );
+
+                    expect(ddbMock).toHaveReceivedCommandWith(PutCommand, {
+                        TableName: emoteReactionTableName,
+                        Item: {
+                            emoteReactionId: "emoteReactionId",
+                            emoteReactionEmojis: [
+                                {
+                                    emojiId: ":snake:",
+                                    numberOfReactions: 3,
+                                    reactedUserIds: [
+                                        "mock-sub",
+                                        "mock-sub2",
+                                        "mock-reacted-user-id",
+                                    ],
+                                },
+                                {
+                                    emojiId: ":cat:",
+                                    numberOfReactions: 2,
+                                    reactedUserIds: ["mock-sub2", "mock-sub3"],
+                                },
+                            ],
+                        },
+                    });
+                });
             });
 
-            test("EmoteReactionTableに対してPutのリクエスト(+1)が送付される", async () => {
-                testSetUp({
-                    userConnectionGet: "ok",
-                    userConnectionScan: "ok",
-                    userConnectionDelete: "ok",
-                    emoteReactionGet: "ok",
-                    emoteReactionPut: "ok",
-                    apiPostToConnection: "ok",
+            describe("リアクションしたことがない絵文字に対してリアクションした場合", () => {
+                test("200を返す", async () => {
+                    testSetUp({
+                        userConnectionGet: "ok",
+                        userConnectionScan: "ok",
+                        userConnectionDelete: "ok",
+                        emoteReactionGet: "ok",
+                        emoteReactionPut: "ok",
+                        apiPostToConnection: "ok",
+                    });
+
+                    const response = await onReact(
+                        getOnReactEventBody({
+                            reactedUserId: "mock-reacted-user-id",
+                            operation: "increment",
+                            reactedEmojiId: ":dolphin:",
+                        }),
+                    );
+
+                    expect(response.statusCode).toBe(200);
                 });
 
-                await onReact(
-                    getOnReactEventBody({
-                        reactedUserId: "mock-reacted-user-id",
-                        operation: "increment",
-                    }),
-                );
+                test("EmoteReactionTableに対してPutのリクエスト(+1)が送付される", async () => {
+                    testSetUp({
+                        userConnectionGet: "ok",
+                        userConnectionScan: "ok",
+                        userConnectionDelete: "ok",
+                        emoteReactionGet: "ok",
+                        emoteReactionPut: "ok",
+                        apiPostToConnection: "ok",
+                    });
 
-                expect(ddbMock).toHaveReceivedCommandWith(PutCommand, {
-                    TableName: emoteReactionTableName,
-                    Item: {
-                        emoteReactionId: "emoteReactionId",
-                        emoteReactionEmojis: [
-                            {
-                                emojiId: ":snake:",
-                                numberOfReactions: 3,
-                                reactedUserIds: [
-                                    "mock-sub",
-                                    "mock-sub2",
-                                    "mock-reacted-user-id",
-                                ],
-                            },
-                            {
-                                emojiId: ":cat:",
-                                numberOfReactions: 2,
-                                reactedUserIds: ["mock-sub2", "mock-sub3"],
-                            },
-                        ],
-                    },
+                    await onReact(
+                        getOnReactEventBody({
+                            reactedUserId: "mock-reacted-user-id",
+                            operation: "increment",
+                            reactedEmojiId: ":dolphin:",
+                        }),
+                    );
+
+                    expect(ddbMock).toHaveReceivedCommandWith(PutCommand, {
+                        TableName: emoteReactionTableName,
+                        Item: {
+                            emoteReactionId: "emoteReactionId",
+                            emoteReactionEmojis: [
+                                {
+                                    emojiId: ":snake:",
+                                    numberOfReactions: 2,
+                                    reactedUserIds: ["mock-sub", "mock-sub2"],
+                                },
+                                {
+                                    emojiId: ":cat:",
+                                    numberOfReactions: 2,
+                                    reactedUserIds: ["mock-sub2", "mock-sub3"],
+                                },
+                                {
+                                    emojiId: ":dolphin:",
+                                    numberOfReactions: 1,
+                                    reactedUserIds: ["mock-reacted-user-id"],
+                                },
+                            ],
+                        },
+                    });
                 });
             });
 
@@ -725,6 +793,27 @@ describe("リアクション時", () => {
             );
 
             verifyErrorResponse(response, 400, "WSK-26");
+        });
+
+        test("リアクションがない絵文字に対して「decrement」を実行した時、ステータスコード400とWSK-27を返す", async () => {
+            testSetUp({
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
+                emoteReactionGet: "ok",
+                emoteReactionPut: "ok",
+                apiPostToConnection: "ok",
+            });
+
+            const response = await onReact(
+                getOnReactEventBody({
+                    reactedUserId: "mock-sub",
+                    operation: "decrement",
+                    reactedEmojiId: ":dolphin:",
+                }),
+            );
+
+            verifyErrorResponse(response, 400, "WSK-27");
         });
 
         test("リアクション件数が0件の絵文字に対して「decrement」を実行した時、ステータスコード400とWSK-28を返す", async () => {

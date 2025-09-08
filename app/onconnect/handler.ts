@@ -3,7 +3,6 @@ import "dayjs/locale/ja";
 import { envConfig } from "@/config";
 import { APIResponse, ConnectAPIRequest } from "@/@types";
 import { createErrorResponse, putToDynamoDB, verifyToken } from "@/utility";
-import { jwtDecode } from "jwt-decode";
 
 dayjs.locale("ja");
 
@@ -34,7 +33,7 @@ export const connect = async (
             {
                 connectionId,
                 timestamp: dayjs().format("YYYY-MM-DD HH:mm:ss"),
-                sub: jwtDecode(authorizationToken).sub,
+                sub: verifyTokenResult.body.sub,
             },
             "WSK-02",
         );

@@ -8,6 +8,7 @@
         "dynamodb install": "serverless dynamodb install",
         "dynamodb start": "serverless dynamodb start --stage offline",
         "test": "jest --silent",
+        "test:coverage": "jest --coverage",
         "test:console": "jest"
     },
     "dependencies": {

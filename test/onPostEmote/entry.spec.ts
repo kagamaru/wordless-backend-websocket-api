@@ -703,7 +703,26 @@ describe("エモート投稿時", () => {
             verifyErrorResponse(response, 500, "WSK-43");
         });
 
-        test("UserConnectionTableからデータを全件取得して0件だった時、ステータスコード404とWSK-44を返す", async () => {
+        test("呼び出しているLambda関数の実行に失敗した時、ステータスコード500とWSK-44を返す", async () => {
+            testSetUp({
+                userSubGet: "ok",
+                userConnectionGet: "ok",
+                userConnectionScan: "ok",
+                userConnectionDelete: "ok",
+                userGet: "ok",
+                emoteReactionPut: "ok",
+                postEmoteCoreLambdaInvoke: "fail",
+                apiPostToConnection: "ok",
+            });
+
+            const response = await onPostEmoteEntry(
+                getOnPostEmoteEventBody({}),
+            );
+
+            verifyErrorResponse(response, 500, "WSK-44");
+        });
+
+        test("UserConnectionTableからデータを全件取得して0件だった時、ステータスコード404とWSK-45を返す", async () => {
             testSetUp({
                 userSubGet: "ok",
                 userConnectionGet: "ok",
@@ -719,10 +738,10 @@ describe("エモート投稿時", () => {
                 getOnPostEmoteEventBody({}),
             );
 
-            verifyErrorResponse(response, 404, "WSK-44");
+            verifyErrorResponse(response, 404, "WSK-45");
         });
 
-        test("UserConnectionTableに対して全件取得しようとして接続できない時、ステータスコード500とWSK-45を返す", async () => {
+        test("UserConnectionTableに対して全件取得しようとして接続できない時、ステータスコード500とWSK-46を返す", async () => {
             testSetUp({
                 userSubGet: "ok",
                 userConnectionGet: "ok",
@@ -738,10 +757,10 @@ describe("エモート投稿時", () => {
                 getOnPostEmoteEventBody({}),
             );
 
-            verifyErrorResponse(response, 500, "WSK-45");
+            verifyErrorResponse(response, 500, "WSK-46");
         });
 
-        test("API Gatewayと接続できない時、ステータスコード500とWSK-46を返す", async () => {
+        test("API Gatewayと接続できない時、ステータスコード500とWSK-47を返す", async () => {
             testSetUp({
                 userSubGet: "ok",
                 userConnectionGet: "ok",
@@ -757,7 +776,7 @@ describe("エモート投稿時", () => {
                 getOnPostEmoteEventBody({}),
             );
 
-            verifyErrorResponse(response, 500, "WSK-46");
+            verifyErrorResponse(response, 500, "WSK-47");
         });
 
         test("UserConnectionTableからデータの削除に失敗した時、エラーにはしない", async () => {

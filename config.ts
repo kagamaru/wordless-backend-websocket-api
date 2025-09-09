@@ -7,6 +7,7 @@ export const envConfig = {
     USERS_TABLE: process.env.USERS_TABLE,
     USER_SUB_TABLE: process.env.USER_SUB_TABLE,
     POST_EMOTE_CORE_LAMBDA_NAME: process.env.POST_EMOTE_CORE_LAMBDA_NAME,
+    MY_AWS_REGION: process.env.MY_AWS_REGION,
 };
 
 export const dbConfig = {

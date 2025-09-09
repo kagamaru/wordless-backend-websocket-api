@@ -30,6 +30,7 @@
 | COGNITO_REGION              | Cognito のリージョン                    |
 | WEBSOCKET_ENDPOINT          | API Gateway のエンドポイント            |
 | POST_EMOTE_CORE_LAMBDA_NAME | エモート-投稿APIのLambda関数名          |
+| MY_AWS_REGION               | 使用しているAWS のリージョン            |
 
 ## リポジトリの技術要素
 

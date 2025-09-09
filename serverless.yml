@@ -22,10 +22,10 @@ provider:
             - lambda:InvokeFunction
           Resource:
             - Fn::GetAtt: [UserConnectionTable, Arn]
-            - arn:aws:dynamodb:us-west-2:${aws:accountId}:table/emote-reaction-table-${sls:stage}
-            - arn:aws:dynamodb:us-west-2:${aws:accountId}:table/users-table-${sls:stage}
-            - arn:aws:dynamodb:us-west-2:${aws:accountId}:table/user-sub-table-${sls:stage}
-            - arn:aws:lambda:us-west-2:${aws:accountId}:function:wordless-backend-websocket-api-dev-post-emote-core
+            - arn:aws:dynamodb:${env:MY_AWS_REGION}:${aws:accountId}:table/emote-reaction-table-${sls:stage}
+            - arn:aws:dynamodb:${env:MY_AWS_REGION}:${aws:accountId}:table/users-table-${sls:stage}
+            - arn:aws:dynamodb:${env:MY_AWS_REGION}:${aws:accountId}:table/user-sub-table-${sls:stage}
+            - arn:aws:lambda:${env:MY_AWS_REGION}:${aws:accountId}:function:wordless-backend-websocket-api-${sls:stage}-post-emote-core
   environment:
     USER_CONNECTION_TABLE: "user-connection-table-${sls:stage}"
     EMOTE_REACTION_TABLE: "emote-reaction-table-${sls:stage}"
@@ -40,6 +40,7 @@ provider:
     COGNITO_REGION: us-west-2
     WEBSOCKET_ENDPOINT: ${self:custom.websocket_endpoint.${sls:stage}}
     POST_EMOTE_CORE_LAMBDA_NAME: wordless-backend-websocket-api-${sls:stage}-post-emote-core
+    MY_AWS_REGION: ${env:MY_AWS_REGION}
   websocketsApiName: wordless-backend-websocket-api-${sls:stage}
 
 functions:

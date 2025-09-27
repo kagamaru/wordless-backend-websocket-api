@@ -23,13 +23,13 @@ provider:
           Resource:
             - Fn::GetAtt: [UserConnectionTable, Arn]
             - arn:aws:dynamodb:${env:MY_AWS_REGION}:${aws:accountId}:table/emote-reaction-table-${sls:stage}
-            - arn:aws:dynamodb:${env:MY_AWS_REGION}:${aws:accountId}:table/users-table-${sls:stage}
+            - arn:aws:dynamodb:${env:MY_AWS_REGION}:${aws:accountId}:table/user-table-${sls:stage}
             - arn:aws:dynamodb:${env:MY_AWS_REGION}:${aws:accountId}:table/user-sub-table-${sls:stage}
             - arn:aws:lambda:${env:MY_AWS_REGION}:${aws:accountId}:function:wordless-backend-websocket-api-${sls:stage}-post-emote-core
   environment:
     USER_CONNECTION_TABLE: "user-connection-table-${sls:stage}"
     EMOTE_REACTION_TABLE: "emote-reaction-table-${sls:stage}"
-    USERS_TABLE: "users-table-${sls:stage}"
+    USER_TABLE: "user-table-${sls:stage}"
     USER_SUB_TABLE: "user-sub-table-${sls:stage}"
     DEPLOY_ENV: ${sls:stage}
     DB_HOST: ${self:custom.db_host.${sls:stage}}
@@ -102,7 +102,7 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
         TableName: emote-reaction-table-${sls:stage}
-    UsersTable:
+    UserTable:
       Type: AWS::DynamoDB::Table
       Condition: IsOffline
       Properties:
@@ -113,7 +113,7 @@ resources:
           - AttributeName: userId
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
-        TableName: users-table-${sls:stage}
+        TableName: user-table-${sls:stage}
     UserSubTable:
       Type: AWS::DynamoDB::Table
       Condition: IsOffline
@@ -192,5 +192,5 @@ custom:
             sources: [./seed/emote-reaction-table-offline.json]
           - table: user-sub-table-offline
             sources: [./seed/user-sub-table-offline.json]
-          - table: users-table-offline
-            sources: [./seed/users-table-offline.json]
+          - table: user-table-offline
+            sources: [./seed/user-table-offline.json]

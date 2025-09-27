@@ -6,7 +6,7 @@ jest.mock("@/config", () => ({
         USER_CONNECTION_TABLE: "user-connection-table-offline",
         EMOTE_REACTION_TABLE: "emote-reaction-table-offline",
         USER_SUB_TABLE: "user-sub-table-offline",
-        USERS_TABLE: "users-table-offline",
+        USER_TABLE: "user-table-offline",
         POST_EMOTE_CORE_LAMBDA_NAME:
             "wordless-backend-websocket-api-offline-post-emote-core",
     },

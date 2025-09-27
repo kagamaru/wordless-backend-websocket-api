@@ -8,7 +8,7 @@ import { verifyErrorResponse } from "@/test/testUtils";
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
-const usersTableName = "users-table-offline";
+const userTableName = "user-table-offline";
 const emoteReactionTableName = "emote-reaction-table-offline";
 
 type TestSetupOptions = {
@@ -57,7 +57,7 @@ jest.mock("guid-typescript", () => ({
 
 const testSetUp = ({ userGet, emoteReactionPut }: TestSetupOptions) => {
     const userDdbGetMock = ddbMock.on(GetCommand, {
-        TableName: usersTableName,
+        TableName: userTableName,
     });
     const emoteReactionDdbPutMock = ddbMock.on(PutCommand, {
         TableName: emoteReactionTableName,

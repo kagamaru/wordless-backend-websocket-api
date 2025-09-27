@@ -59,7 +59,7 @@ export const onPostEmoteCore = async (
 
     try {
         userProfileInfo = (await getItemFromDynamoDB(
-            envConfig.USERS_TABLE,
+            envConfig.USER_TABLE,
             {
                 userId,
             },

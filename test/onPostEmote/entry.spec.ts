@@ -26,7 +26,7 @@ const lambdaMock = mockClient(LambdaClient);
 
 const userConnectionTableName = "user-connection-table-offline";
 const userSubTableName = "user-sub-table-offline";
-const usersTableName = "users-table-offline";
+const userTableName = "user-table-offline";
 const emoteReactionTableName = "emote-reaction-table-offline";
 const postEmoteCoreLambdaName =
     "wordless-backend-websocket-api-offline-post-emote-core";
@@ -102,7 +102,7 @@ const testSetUp = ({
         TableName: userConnectionTableName,
     });
     const userDdbGetMock = ddbMock.on(GetCommand, {
-        TableName: usersTableName,
+        TableName: userTableName,
     });
     const emoteReactionDdbPutMock = ddbMock.on(PutCommand, {
         TableName: emoteReactionTableName,

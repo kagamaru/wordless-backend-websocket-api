@@ -4,7 +4,7 @@ export const envConfig = {
     USER_CONNECTION_TABLE: process.env.USER_CONNECTION_TABLE,
     EMOTE_TABLE: process.env.EMOTE_TABLE,
     EMOTE_REACTION_TABLE: process.env.EMOTE_REACTION_TABLE,
-    USERS_TABLE: process.env.USERS_TABLE,
+    USER_TABLE: process.env.USER_TABLE,
     USER_SUB_TABLE: process.env.USER_SUB_TABLE,
     POST_EMOTE_CORE_LAMBDA_NAME: process.env.POST_EMOTE_CORE_LAMBDA_NAME,
     MY_AWS_REGION: process.env.MY_AWS_REGION,

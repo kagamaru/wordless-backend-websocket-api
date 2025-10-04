@@ -72,8 +72,10 @@ functions:
   post-emote-core: 
     handler: app/onPostEmote/core.onPostEmoteCore
     vpc:
-      securityGroupIds: ${self:custom.security-group-id.${sls:stage}}
-      subnetIds: ${self:custom.vpc_subnet_id.${sls:stage}}
+      securityGroupIds: ${self:custom.lambda_security-group-id.${sls:stage}}
+      subnetIds:
+        - ${self:custom.vpc_subnet_id_a.${sls:stage}}
+        - ${self:custom.vpc_subnet_id_b.${sls:stage}}
 
 resources:
   Conditions:
@@ -138,14 +140,18 @@ plugins:
   - serverless-offline
 
 custom:
-  security-group-id:
-    offline: ${env:VPC_SECURITY_GROUP_ID}
-    dev: ${env:VPC_SECURITY_GROUP_ID}
-    prod: ${env:VPC_SECURITY_GROUP_ID}
-  vpc_subnet_id:
-    offline: ${env:VPC_SUBNET_ID}
-    dev: ${env:VPC_SUBNET_ID}
-    prod: ${env:VPC_SUBNET_ID}
+  lambda_security-group-id:
+    offline: ${env:LAMBDA_SECURITY_GROUP_ID}
+    dev: ${env:LAMBDA_SECURITY_GROUP_ID}
+    prod: ${env:LAMBDA_SECURITY_GROUP_ID}
+  vpc_subnet_id_a:
+    offline: ${env:VPC_PUBLIC_SUBNET_ID_A}
+    dev: ${env:VPC_PUBLIC_SUBNET_ID_A}
+    prod: ${env:VPC_PUBLIC_SUBNET_ID_A}
+  vpc_subnet_id_b:
+    offline: ${env:VPC_PUBLIC_SUBNET_ID_B}
+    dev: ${env:VPC_PUBLIC_SUBNET_ID_B}
+    prod: ${env:VPC_PUBLIC_SUBNET_ID_B}
   db_host:
     offline: ${env:DB_HOST}
     dev: ${env:DB_HOST}

@@ -426,16 +426,17 @@ sequenceDiagram
 
 ## 環境変数の一覧
 
-| 環境変数名                  | 説明                                    |
-| --------------------------- | --------------------------------------- |
-| VPC_SECURITY_GROUP_ID       | VPC のセキュリティグループID(RDS接続用) |
-| VPC_SUBNET_ID               | VPC のサブネットID(RDS接続用)           |
-| DB_HOST                     | RDS のホスト                            |
-| DB_USER                     | RDS のユーザー名                        |
-| DB_PASSWORD                 | RDS のパスワード                        |
-| DB_NAME                     | RDS のデータベース名                    |
-| COGNITO_USER_POOL_ID        | Cognito のユーザープールID              |
-| COGNITO_REGION              | Cognito のリージョン                    |
-| WEBSOCKET_ENDPOINT          | API Gateway のエンドポイント            |
-| POST_EMOTE_CORE_LAMBDA_NAME | エモート-投稿APIのLambda関数名          |
-| MY_AWS_REGION               | 使用しているAWS のリージョン            |
+| 環境変数名                  | 説明                                       |
+| --------------------------- | ------------------------------------------ |
+| LAMBDA_SECURITY_GROUP_ID    | Lambda のセキュリティグループID            |
+| VPC_PUBLIC_SUBNET_ID_A      | VPC のパブリックサブネットID(Lambda接続用) |
+| VPC_PUBLIC_SUBNET_ID_B      | VPC のパブリックサブネットID(Lambda接続用) |
+| DB_HOST                     | RDS のホスト                               |
+| DB_USER                     | RDS のユーザー名                           |
+| DB_PASSWORD                 | RDS のパスワード                           |
+| DB_NAME                     | RDS のデータベース名                       |
+| COGNITO_USER_POOL_ID        | Cognito のユーザープールID                 |
+| COGNITO_REGION              | Cognito のリージョン                       |
+| WEBSOCKET_ENDPOINT          | API Gateway のエンドポイント               |
+| POST_EMOTE_CORE_LAMBDA_NAME | エモート-投稿APIのLambda関数名             |
+| MY_AWS_REGION               | 使用しているAWS のリージョン               |
